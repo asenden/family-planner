@@ -1,3 +1,5 @@
+import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { TopBar } from "./_components/TopBar";
 import { WidgetGrid } from "./_components/WidgetGrid";
@@ -5,11 +7,18 @@ import { IdleScreensaver } from "./_components/IdleScreensaver";
 import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
 
 async function getFamilyData() {
-  const family = await db.family.findFirst({
+  const cookieStore = await cookies();
+  const familyCode = cookieStore.get("familyCode")?.value;
+
+  if (!familyCode) return null;
+
+  const family = await db.family.findUnique({
+    where: { inviteCode: familyCode },
     include: {
       members: { select: { id: true, name: true, color: true, avatar: true }, orderBy: { createdAt: "asc" } },
     },
   });
+
   if (!family) return null;
 
   const now = new Date();
@@ -50,6 +59,10 @@ async function getFamilyData() {
 export default async function DashboardPage() {
   let familyData = null;
   try { familyData = await getFamilyData(); } catch {}
+
+  if (!familyData) {
+    redirect("/");
+  }
 
   return (
     <div className="min-h-screen p-4 flex flex-col gap-4" style={{ backgroundColor: "var(--color-background)" }}>

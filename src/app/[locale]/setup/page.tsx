@@ -40,6 +40,12 @@ export default function SetupPage() {
     setLoading(false);
     if (!res.ok) { setError(data.error || "Something went wrong"); return; }
     setInviteCode(data.family.inviteCode);
+    // Set the cookie so the user is authenticated
+    await fetch("/api/auth/family-code", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ code: data.family.inviteCode }),
+    });
     setStep("invite");
   }
 

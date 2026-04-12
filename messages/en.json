@@ -89,6 +89,17 @@
     "sun": "Sun",
     "saveFailed": "Failed to save event. Please try again."
   },
+  "landing": {
+    "title": "FamilyDisplay",
+    "subtitle": "Your family dashboard",
+    "enterCode": "Enter your family code",
+    "codePlaceholder": "ABC123",
+    "join": "Open Dashboard",
+    "or": "or",
+    "createFamily": "Create a new Family",
+    "invalidCode": "Invalid code. Please check and try again.",
+    "unknownCode": "Family not found. Please check the code."
+  },
   "calendarSettings": {
     "title": "Calendar Accounts",
     "addAccount": "Add Calendar",

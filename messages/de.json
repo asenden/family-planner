@@ -89,6 +89,17 @@
     "sun": "So",
     "saveFailed": "Termin konnte nicht gespeichert werden. Bitte versuche es erneut."
   },
+  "landing": {
+    "title": "FamilyDisplay",
+    "subtitle": "Dein Familien-Dashboard",
+    "enterCode": "Gib deinen Familien-Code ein",
+    "codePlaceholder": "ABC123",
+    "join": "Dashboard öffnen",
+    "or": "oder",
+    "createFamily": "Neue Familie erstellen",
+    "invalidCode": "Ungültiger Code. Bitte überprüfe die Eingabe.",
+    "unknownCode": "Familie nicht gefunden. Bitte überprüfe den Code."
+  },
   "calendarSettings": {
     "title": "Kalender-Konten",
     "addAccount": "Kalender hinzufügen",
