@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
+import { Sun, CloudSun } from "lucide-react";
 
 export function TopBar() {
   const locale = useLocale();
@@ -23,7 +24,7 @@ export function TopBar() {
       data-testid="topbar"
     >
       <div data-testid="topbar-weather" className="flex items-center gap-3">
-        <span className="text-2xl">☀️</span>
+        <Sun size={24} strokeWidth={1.5} style={{ color: "var(--color-accent)" }} />
         <span className="text-lg font-medium" style={{ color: "var(--color-text-muted)" }}>--°C</span>
       </div>
 
@@ -34,7 +35,7 @@ export function TopBar() {
         <div className="text-lg font-bold">{dateStr}</div>
       </div>
 
-      <div data-testid="topbar-time" className="text-3xl font-extrabold tracking-tight" style={{ color: "var(--color-text)" }}>
+      <div data-testid="topbar-time" className="text-3xl font-extrabold tracking-tight tabular-nums" style={{ color: "var(--color-text)" }}>
         {time}
       </div>
     </div>

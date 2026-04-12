@@ -2,6 +2,7 @@
 
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
+import { CalendarDays } from "lucide-react";
 
 interface CalendarEvent {
   id: string;
@@ -19,6 +20,7 @@ interface CalendarWidgetProps {
 }
 
 const MAX_EVENTS_DEFAULT = 10;
+const CALENDAR_COLOR = "#a78bfa";
 
 export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }: CalendarWidgetProps) {
   const t = useTranslations("calendar");
@@ -38,9 +40,19 @@ export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }
       className="glass glass-hover w-full text-left p-5 cursor-pointer overflow-hidden animate-slide-up"
       style={{ borderRadius: "var(--border-radius)", animationDelay: "50ms" }}
     >
-      <div className="flex items-center gap-2.5 mb-3">
-        <span className="text-xl">📅</span>
-        <span className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: "#a78bfa" }}>
+      <div className="flex items-center gap-3 mb-4">
+        <div
+          className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
+          style={{
+            background: `linear-gradient(135deg, ${CALENDAR_COLOR}20, ${CALENDAR_COLOR}10)`,
+            border: `1px solid ${CALENDAR_COLOR}30`,
+            boxShadow: `0 0 20px ${CALENDAR_COLOR}15`,
+            color: CALENDAR_COLOR,
+          }}
+        >
+          <CalendarDays size={20} strokeWidth={1.8} />
+        </div>
+        <span className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: CALENDAR_COLOR }}>
           {t("title")}
         </span>
       </div>

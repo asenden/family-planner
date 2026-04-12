@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
+import { ListChecks, Pin, UtensilsCrossed, Heart, Images } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { CalendarWidget } from "./CalendarWidget";
 import { CalendarFullView } from "./CalendarFullView";
@@ -47,21 +48,50 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
     <div className="grid grid-cols-3 gap-4">
       <CalendarWidget events={calendarEvents} onTap={() => setFullView("calendar")} />
 
-      <WidgetCard title={t("widgets.routines")} icon="✅" color="#f59e0b" delay={100}>
+      <WidgetCard
+        title={t("widgets.routines")}
+        icon={<ListChecks size={20} strokeWidth={1.8} />}
+        color="#f59e0b"
+        delay={100}
+      >
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.pinboard")} icon="📌" color="#34d399" delay={150}>
+
+      <WidgetCard
+        title={t("widgets.pinboard")}
+        icon={<Pin size={20} strokeWidth={1.8} />}
+        color="#34d399"
+        delay={150}
+      >
         <p style={{ color: "var(--color-text-muted)" }}>{t("noMessages")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.meal")} icon="🍽" color="#60a5fa" delay={200}>
+
+      <WidgetCard
+        title={t("widgets.meal")}
+        icon={<UtensilsCrossed size={20} strokeWidth={1.8} />}
+        color="#60a5fa"
+        delay={200}
+      >
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.feelings")} icon="💭" color="#c084fc" delay={250}>
+
+      <WidgetCard
+        title={t("widgets.feelings")}
+        icon={<Heart size={20} strokeWidth={1.8} />}
+        color="#c084fc"
+        delay={250}
+      >
         <div className="flex gap-3 text-2xl">
           <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>🤩</span>
         </div>
       </WidgetCard>
-      <WidgetCard title={t("widgets.photos")} icon="🖼" color="#fbbf24" delay={300}>
+
+      <WidgetCard
+        title={t("widgets.photos")}
+        icon={<Images size={20} strokeWidth={1.8} />}
+        color="#fbbf24"
+        delay={300}
+      >
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
     </div>
