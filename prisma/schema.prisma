@@ -16,14 +16,15 @@ model Family {
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
-  members          FamilyMember[]
-  calendarEvents   CalendarEvent[]
-  routines         Routine[]
-  rewards          Reward[]
-  meals            Meal[]
-  groceryLists     GroceryList[]
-  pinboardMessages PinboardMessage[]
-  photos           Photo[]
+  members           FamilyMember[]
+  calendarEvents    CalendarEvent[]
+  calendarAccounts  CalendarAccount[]
+  routines          Routine[]
+  rewards           Reward[]
+  meals             Meal[]
+  groceryLists      GroceryList[]
+  pinboardMessages  PinboardMessage[]
+  photos            Photo[]
 }
 
 model FamilyMember {
@@ -40,6 +41,7 @@ model FamilyMember {
   family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   calendarEvents     CalendarEvent[]    @relation("EventAssignees")
+  calendarAccounts   CalendarAccount[]
   routines           Routine[]
   routineCompletions RoutineCompletion[]
   rewardRedemptions  RewardRedemption[]
@@ -83,6 +85,28 @@ enum CalendarSource {
   google
   outlook
   apple
+}
+
+model CalendarAccount {
+  id         String         @id @default(cuid())
+  provider   CalendarSource
+  serverUrl  String
+  username   String
+  password   String
+  calendarId String?
+
+  syncEnabled Boolean  @default(true)
+  lastSyncAt  DateTime?
+
+  memberId String
+  member   FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([memberId, serverUrl, username])
 }
 
 model Routine {
