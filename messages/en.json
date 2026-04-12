@@ -118,7 +118,18 @@
     "familyCode": "Family Code",
     "familyCodeHint": "Share this code so others can join.",
     "close": "Close",
-    "save": "Save"
+    "save": "Save",
+    "location": "Location"
+  },
+  "weather": {
+    "title": "Weather",
+    "forecast": "7-Day Forecast",
+    "today": "Today",
+    "high": "H",
+    "low": "L",
+    "notConfigured": "Set your location in Settings to see weather.",
+    "locationSearch": "Search city...",
+    "locationSet": "Location set to {city}"
   },
   "calendarSettings": {
     "title": "Calendar Accounts",

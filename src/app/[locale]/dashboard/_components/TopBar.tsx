@@ -3,12 +3,15 @@
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
 import { Sun, Settings } from "lucide-react";
+import type { CurrentWeather } from "@/lib/weather";
 
 interface TopBarProps {
   onSettingsClick?: () => void;
+  weather?: CurrentWeather | null;
+  onWeatherClick?: () => void;
 }
 
-export function TopBar({ onSettingsClick }: TopBarProps) {
+export function TopBar({ onSettingsClick, weather, onWeatherClick }: TopBarProps) {
   const locale = useLocale();
   const [now, setNow] = useState(new Date());
 
@@ -27,9 +30,25 @@ export function TopBar({ onSettingsClick }: TopBarProps) {
       style={{ borderRadius: "var(--border-radius)", boxShadow: "var(--shadow-topbar)" }}
       data-testid="topbar"
     >
-      <div data-testid="topbar-weather" className="flex items-center gap-3">
-        <Sun size={24} strokeWidth={1.5} style={{ color: "var(--color-accent)" }} />
-        <span className="text-lg font-medium" style={{ color: "var(--color-text-muted)" }}>--°C</span>
+      <div
+        data-testid="topbar-weather"
+        className="flex items-center gap-3"
+        onClick={onWeatherClick}
+        style={{ cursor: onWeatherClick ? "pointer" : "default" }}
+      >
+        {weather ? (
+          <>
+            <span className="text-2xl leading-none">{weather.icon}</span>
+            <span className="text-lg font-medium" style={{ color: "var(--color-text-muted)" }}>
+              {weather.temperature}°C
+            </span>
+          </>
+        ) : (
+          <>
+            <Sun size={24} strokeWidth={1.5} style={{ color: "var(--color-accent)" }} />
+            <span className="text-lg font-medium" style={{ color: "var(--color-text-muted)" }}>--°C</span>
+          </>
+        )}
       </div>
 
       <div data-testid="topbar-date" className="text-center">

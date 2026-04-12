@@ -3,8 +3,10 @@ import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
 import { DashboardClient } from "./_components/DashboardClient";
 import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
+import { fetchWeather } from "@/lib/weather";
+import type { WeatherData } from "@/lib/weather";
 
-async function getFamilyData() {
+async function getFamilyData(locale: string) {
   const cookieStore = await cookies();
   const familyCode = cookieStore.get("familyCode")?.value;
 
@@ -47,17 +49,30 @@ async function getFamilyData() {
     ninetyDaysAhead
   );
 
+  let weather: WeatherData | null = null;
+  if (family.latitude != null && family.longitude != null) {
+    try {
+      weather = await fetchWeather(family.latitude, family.longitude, locale);
+    } catch {
+      // Weather fetch failed — show dashboard without weather
+    }
+  }
+
   return {
     familyId: family.id,
     familyCode: family.inviteCode,
     members: family.members,
     events: expandedEvents,
+    weather,
+    city: family.city ?? null,
   };
 }
 
-export default async function DashboardPage() {
+export default async function DashboardPage({ params }: { params: Promise<{ locale: string }> }) {
+  const { locale } = await params;
+
   let familyData = null;
-  try { familyData = await getFamilyData(); } catch {}
+  try { familyData = await getFamilyData(locale); } catch {}
 
   if (!familyData) {
     redirect("/");
@@ -69,6 +84,8 @@ export default async function DashboardPage() {
       familyCode={familyData.familyCode}
       calendarEvents={familyData.events}
       familyMembers={familyData.members}
+      weather={familyData.weather}
+      city={familyData.city}
     />
   );
 }

@@ -13,6 +13,9 @@ model Family {
   inviteCode String   @unique @db.VarChar(6)
   theme      String   @default("playful")
   locale     String   @default("de")
+  latitude   Float?
+  longitude  Float?
+  city       String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 

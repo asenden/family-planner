@@ -1,8 +1,8 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { Settings, Users, CalendarDays, Key, X } from "lucide-react";
+import { Settings, Users, CalendarDays, Key, X, MapPin } from "lucide-react";
 
 interface FamilyMember {
   id: string;
@@ -21,14 +21,23 @@ interface CalendarAccount {
   calendarId: string | null;
 }
 
+interface GeoResult {
+  name: string;
+  country: string;
+  admin1: string;
+  latitude: number;
+  longitude: number;
+}
+
 interface SettingsModalProps {
   familyId: string;
   familyCode: string;
   members: FamilyMember[];
+  city?: string | null;
   onClose: () => void;
 }
 
-type Tab = "members" | "calendars" | "code";
+type Tab = "members" | "calendars" | "location" | "code";
 
 const PROVIDER_ICONS: Record<string, string> = {
   apple: "🍎",
@@ -47,9 +56,10 @@ const inputStyle = {
   color: "var(--color-text)",
 } as const;
 
-export function SettingsModal({ familyId, familyCode, members: initialMembers, onClose }: SettingsModalProps) {
+export function SettingsModal({ familyId, familyCode, members: initialMembers, city: initialCity, onClose }: SettingsModalProps) {
   const t = useTranslations("settings");
   const tCal = useTranslations("calendarSettings");
+  const tWeather = useTranslations("weather");
   const [activeTab, setActiveTab] = useState<Tab>("members");
   const [members, setMembers] = useState<FamilyMember[]>(initialMembers);
   const [accounts, setAccounts] = useState<CalendarAccount[]>([]);
@@ -57,6 +67,14 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, o
   const [showAddMember, setShowAddMember] = useState(false);
   const [showAddCalendar, setShowAddCalendar] = useState(false);
   const [calendarError, setCalendarError] = useState<string | null>(null);
+
+  // Location state
+  const [locationQuery, setLocationQuery] = useState("");
+  const [geoResults, setGeoResults] = useState<GeoResult[]>([]);
+  const [searchingGeo, setSearchingGeo] = useState(false);
+  const [currentCity, setCurrentCity] = useState<string | null>(initialCity ?? null);
+  const [locationSaved, setLocationSaved] = useState(false);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     if (activeTab === "calendars") {
@@ -69,6 +87,44 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, o
     }
   }, [activeTab, familyId]);
 
+  useEffect(() => {
+    if (!locationQuery.trim()) {
+      setGeoResults([]);
+      return;
+    }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      setSearchingGeo(true);
+      try {
+        const res = await fetch(`/api/geocode?q=${encodeURIComponent(locationQuery)}`);
+        const data = await res.json();
+        setGeoResults(data.results || []);
+      } catch {
+        setGeoResults([]);
+      } finally {
+        setSearchingGeo(false);
+      }
+    }, 400);
+
+    return () => {
+      if (debounceRef.current) clearTimeout(debounceRef.current);
+    };
+  }, [locationQuery]);
+
+  async function handleSelectLocation(result: GeoResult) {
+    const cityLabel = result.admin1 ? `${result.name}, ${result.admin1}` : result.name;
+    await fetch(`/api/families/${familyId}/location`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ latitude: result.latitude, longitude: result.longitude, city: cityLabel }),
+    });
+    setCurrentCity(cityLabel);
+    setLocationQuery("");
+    setGeoResults([]);
+    setLocationSaved(true);
+    setTimeout(() => setLocationSaved(false), 3000);
+  }
+
   async function handleRemoveAccount(accountId: string) {
     await fetch(`/api/families/${familyId}/calendar-accounts/${accountId}`, { method: "DELETE" });
     setAccounts((prev) => prev.filter((a) => a.id !== accountId));
@@ -77,6 +133,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, o
   const tabs: { key: Tab; icon: React.ReactNode; label: string }[] = [
     { key: "members", icon: <Users size={16} strokeWidth={1.5} />, label: t("familyMembers") },
     { key: "calendars", icon: <CalendarDays size={16} strokeWidth={1.5} />, label: t("calendarConnectors") },
+    { key: "location", icon: <MapPin size={16} strokeWidth={1.5} />, label: t("location") },
     { key: "code", icon: <Key size={16} strokeWidth={1.5} />, label: t("familyCode") },
   ];
 
@@ -108,7 +165,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, o
         </div>
 
         {/* Tabs */}
-        <div className="flex gap-1 px-6 pt-4">
+        <div className="flex gap-1 px-6 pt-4 flex-wrap">
           {tabs.map((tab) => (
             <button
               key={tab.key}
@@ -250,6 +307,81 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, o
                     </button>
                   )}
                 </>
+              )}
+            </div>
+          )}
+
+          {activeTab === "location" && (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 mb-2">
+                <MapPin size={18} strokeWidth={1.5} style={{ color: "var(--color-primary)" }} />
+                <span className="font-semibold" style={{ color: "var(--color-text)" }}>
+                  {t("location")}
+                </span>
+              </div>
+
+              {currentCity && (
+                <div
+                  className="flex items-center gap-2 px-3 py-2 text-sm"
+                  style={{
+                    backgroundColor: "rgba(255,255,255,0.05)",
+                    borderRadius: "calc(var(--border-radius) / 2)",
+                    color: "var(--color-text-muted)",
+                  }}
+                >
+                  <MapPin size={14} strokeWidth={1.5} style={{ color: "var(--color-primary)", flexShrink: 0 }} />
+                  <span>{tWeather("locationSet", { city: currentCity })}</span>
+                </div>
+              )}
+
+              {locationSaved && (
+                <p className="text-xs font-semibold" style={{ color: "#1DD1A1" }}>
+                  ✓ {tWeather("locationSet", { city: currentCity ?? "" })}
+                </p>
+              )}
+
+              <input
+                type="text"
+                value={locationQuery}
+                onChange={(e) => setLocationQuery(e.target.value)}
+                placeholder={tWeather("locationSearch")}
+                className="w-full p-2 text-sm outline-none"
+                style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
+              />
+
+              {searchingGeo && (
+                <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>...</p>
+              )}
+
+              {geoResults.length > 0 && (
+                <div className="space-y-1">
+                  {geoResults.map((r, i) => (
+                    <button
+                      key={i}
+                      onClick={() => handleSelectLocation(r)}
+                      className="w-full text-left px-3 py-2 text-sm cursor-pointer transition-all"
+                      style={{
+                        backgroundColor: "rgba(255,255,255,0.05)",
+                        borderRadius: "calc(var(--border-radius) / 2)",
+                        color: "var(--color-text)",
+                      }}
+                    >
+                      <span className="font-semibold">{r.name}</span>
+                      {r.admin1 && (
+                        <span style={{ color: "var(--color-text-muted)" }}>, {r.admin1}</span>
+                      )}
+                      {r.country && (
+                        <span style={{ color: "var(--color-text-muted)" }}> — {r.country}</span>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              )}
+
+              {!currentCity && geoResults.length === 0 && !locationQuery && (
+                <p className="text-sm text-center py-4" style={{ color: "var(--color-text-muted)" }}>
+                  {tWeather("notConfigured")}
+                </p>
               )}
             </div>
           )}

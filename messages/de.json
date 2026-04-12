@@ -118,7 +118,18 @@
     "familyCode": "Familien-Code",
     "familyCodeHint": "Teile diesen Code, damit andere beitreten können.",
     "close": "Schließen",
-    "save": "Speichern"
+    "save": "Speichern",
+    "location": "Standort"
+  },
+  "weather": {
+    "title": "Wetter",
+    "forecast": "7-Tage-Vorhersage",
+    "today": "Heute",
+    "high": "H",
+    "low": "T",
+    "notConfigured": "Lege deinen Standort in den Einstellungen fest.",
+    "locationSearch": "Stadt suchen...",
+    "locationSet": "Standort: {city}"
   },
   "calendarSettings": {
     "title": "Kalender-Konten",

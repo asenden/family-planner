@@ -5,6 +5,8 @@ import { TopBar } from "./TopBar";
 import { WidgetGrid } from "./WidgetGrid";
 import { IdleScreensaver } from "./IdleScreensaver";
 import { SettingsModal } from "./SettingsModal";
+import { WeatherModal } from "./WeatherModal";
+import type { WeatherData } from "@/lib/weather";
 
 interface CalendarEvent {
   id: string;
@@ -30,25 +32,40 @@ interface DashboardClientProps {
   familyCode: string;
   calendarEvents: CalendarEvent[];
   familyMembers: FamilyMember[];
+  weather?: WeatherData | null;
+  city?: string | null;
 }
 
-export function DashboardClient({ familyId, familyCode, calendarEvents, familyMembers }: DashboardClientProps) {
+export function DashboardClient({ familyId, familyCode, calendarEvents, familyMembers, weather, city }: DashboardClientProps) {
   const [showSettings, setShowSettings] = useState(false);
+  const [showWeather, setShowWeather] = useState(false);
 
   return (
     <div className="grain min-h-screen p-5 flex flex-col gap-5 relative z-10">
-      <TopBar onSettingsClick={() => setShowSettings(true)} />
+      <TopBar
+        onSettingsClick={() => setShowSettings(true)}
+        weather={weather?.current}
+        onWeatherClick={weather ? () => setShowWeather(true) : undefined}
+      />
       <div className="flex-1 flex items-center">
         <div className="w-full">
           <WidgetGrid calendarEvents={calendarEvents} familyMembers={familyMembers} familyId={familyId} />
         </div>
       </div>
       <IdleScreensaver />
+      {showWeather && weather && (
+        <WeatherModal
+          weather={weather}
+          city={city}
+          onClose={() => setShowWeather(false)}
+        />
+      )}
       {showSettings && (
         <SettingsModal
           familyId={familyId}
           familyCode={familyCode}
           members={familyMembers}
+          city={city}
           onClose={() => setShowSettings(false)}
         />
       )}
