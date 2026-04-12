@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
+import { List, Columns3 } from "lucide-react";
 
 interface CalendarEvent {
   id: string;
@@ -40,6 +41,8 @@ export function CalendarFullView({
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
+  const [dayViewMode, setDayViewMode] = useState<"list" | "columns">("list");
 
   const weekDays = getWeekDays(currentDate, locale);
   const dayEvents = viewMode === "day"
@@ -144,6 +147,7 @@ export function CalendarFullView({
               setCurrentDate(date);
               setViewMode("day");
             }}
+            onEventClick={(event) => setEditingEvent(event)}
           />
         ) : viewMode === "month" ? (
           <MonthView
@@ -156,7 +160,47 @@ export function CalendarFullView({
             }}
           />
         ) : (
-          <DayView events={dayEvents || []} locale={locale} />
+          <>
+            {/* Day view mode toggle */}
+            <div className="flex items-center justify-end gap-1 mb-3">
+              <button
+                onClick={() => setDayViewMode("list")}
+                className="p-1.5 rounded-lg cursor-pointer transition-all"
+                style={{
+                  backgroundColor: dayViewMode === "list" ? "var(--color-primary)" : "var(--color-background)",
+                  color: dayViewMode === "list" ? "#fff" : "var(--color-text-muted)",
+                }}
+                title={t("listView")}
+              >
+                <List size={16} strokeWidth={1.5} />
+              </button>
+              <button
+                onClick={() => setDayViewMode("columns")}
+                className="p-1.5 rounded-lg cursor-pointer transition-all"
+                style={{
+                  backgroundColor: dayViewMode === "columns" ? "var(--color-primary)" : "var(--color-background)",
+                  color: dayViewMode === "columns" ? "#fff" : "var(--color-text-muted)",
+                }}
+                title={t("columnsView")}
+              >
+                <Columns3 size={16} strokeWidth={1.5} />
+              </button>
+            </div>
+            {dayViewMode === "list" ? (
+              <DayView
+                events={dayEvents || []}
+                locale={locale}
+                onEventClick={(event) => setEditingEvent(event)}
+              />
+            ) : (
+              <DayColumnsView
+                events={dayEvents || []}
+                members={members}
+                locale={locale}
+                onEventClick={(event) => setEditingEvent(event)}
+              />
+            )}
+          </>
         )}
       </div>
 
@@ -181,6 +225,20 @@ export function CalendarFullView({
           onClose={() => setShowAddForm(false)}
           onSaved={() => {
             setShowAddForm(false);
+            window.location.reload();
+          }}
+        />
+      )}
+
+      {/* Edit Event Modal */}
+      {editingEvent && (
+        <EditEventModal
+          familyId={familyId}
+          event={editingEvent}
+          members={members}
+          onClose={() => setEditingEvent(null)}
+          onSaved={() => {
+            setEditingEvent(null);
             window.location.reload();
           }}
         />
@@ -305,11 +363,13 @@ function WeekView({
   events,
   locale,
   onDayClick,
+  onEventClick,
 }: {
   weekDays: Date[];
   events: CalendarEvent[];
   locale: string;
   onDayClick: (date: Date) => void;
+  onEventClick: (event: CalendarEvent) => void;
 }) {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -350,7 +410,8 @@ function WeekView({
               {dayEvents.slice(0, 3).map((event) => (
                 <div
                   key={event.id}
-                  className="text-xs px-1.5 py-0.5 rounded truncate"
+                  onClick={(e) => { e.stopPropagation(); onEventClick(event); }}
+                  className="text-xs px-1.5 py-0.5 rounded truncate cursor-pointer hover:opacity-80"
                   style={{
                     backgroundColor:
                       event.assignedTo[0]?.color
@@ -375,7 +436,15 @@ function WeekView({
   );
 }
 
-function DayView({ events, locale }: { events: CalendarEvent[]; locale: string }) {
+function DayView({
+  events,
+  locale,
+  onEventClick,
+}: {
+  events: CalendarEvent[];
+  locale: string;
+  onEventClick?: (event: CalendarEvent) => void;
+}) {
   const t = useTranslations("calendar");
 
   if (events.length === 0) {
@@ -391,10 +460,12 @@ function DayView({ events, locale }: { events: CalendarEvent[]; locale: string }
       {events.map((event) => (
         <div
           key={event.id}
-          className="flex gap-3 p-3"
+          onClick={() => onEventClick?.(event)}
+          className="flex gap-3 p-3 transition-opacity"
           style={{
             backgroundColor: "var(--color-background)",
             borderRadius: "calc(var(--border-radius) / 2)",
+            cursor: onEventClick ? "pointer" : "default",
           }}
         >
           <div
@@ -432,6 +503,336 @@ function DayView({ events, locale }: { events: CalendarEvent[]; locale: string }
           </div>
         </div>
       ))}
+    </div>
+  );
+}
+
+function DayColumnsView({
+  events,
+  members,
+  locale,
+  onEventClick,
+}: {
+  events: CalendarEvent[];
+  members: FamilyMember[];
+  locale: string;
+  onEventClick?: (event: CalendarEvent) => void;
+}) {
+  const t = useTranslations("calendar");
+
+  // Build columns: one per member + "Family" for unassigned
+  const columns: { id: string; name: string; color: string; events: CalendarEvent[] }[] = [
+    ...members.map((m) => ({
+      id: m.id,
+      name: m.name,
+      color: m.color,
+      events: events.filter((e) => e.assignedTo.some((a) => a.id === m.id)),
+    })),
+    {
+      id: "__family__",
+      name: t("familyColumn"),
+      color: "var(--color-primary)",
+      events: events.filter((e) => e.assignedTo.length === 0),
+    },
+  ].filter((col) => col.id === "__family__" || col.events.length > 0);
+
+  if (events.length === 0) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p style={{ color: "var(--color-text-muted)" }}>{t("noEvents")}</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="flex gap-3 overflow-x-auto">
+      {columns.map((col) => (
+        <div key={col.id} className="flex-1 min-w-[140px]">
+          {/* Column header */}
+          <div className="flex items-center gap-1.5 mb-2 pb-2 border-b border-white/10">
+            <div
+              className="w-2.5 h-2.5 rounded-full shrink-0"
+              style={{ backgroundColor: col.color }}
+            />
+            <span className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
+              {col.name}
+            </span>
+          </div>
+          {/* Events */}
+          <div className="space-y-2">
+            {col.events.map((event) => (
+              <div
+                key={event.id}
+                onClick={() => onEventClick?.(event)}
+                className="p-2 transition-opacity hover:opacity-80"
+                style={{
+                  backgroundColor: `color-mix(in srgb, ${event.assignedTo[0]?.color || col.color} 15%, var(--color-background))`,
+                  borderRadius: "calc(var(--border-radius) / 2)",
+                  borderLeft: `3px solid ${event.assignedTo[0]?.color || col.color}`,
+                  cursor: onEventClick ? "pointer" : "default",
+                }}
+              >
+                <p className="text-sm font-semibold truncate" style={{ color: "var(--color-text)" }}>
+                  {event.title}
+                </p>
+                <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                  {event.allDay
+                    ? t("allDay")
+                    : `${formatTime(event.start, locale)} – ${formatTime(event.end, locale)}`}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+function EditEventModal({
+  familyId,
+  event,
+  members,
+  onClose,
+  onSaved,
+}: {
+  familyId: string;
+  event: CalendarEvent;
+  members: FamilyMember[];
+  onClose: () => void;
+  onSaved: () => void;
+}) {
+  const t = useTranslations("calendar");
+  const locale = useLocale();
+
+  // For recurring event instances the id may be "originalId_timestamp" — extract real id
+  const realEventId = event.id.includes("_") ? event.id.split("_")[0] : event.id;
+
+  const [title, setTitle] = useState(event.title);
+  const [description, setDescription] = useState(event.description || "");
+  const [allDay, setAllDay] = useState(event.allDay);
+  const [eventDate, setEventDate] = useState(formatDateLocal(new Date(event.start)));
+  const [startTime, setStartTime] = useState(
+    event.allDay ? "09:00" : new Date(event.start).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
+  );
+  const [endTime, setEndTime] = useState(
+    event.allDay ? "10:00" : new Date(event.end).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit", hour12: false })
+  );
+  const [selectedMembers, setSelectedMembers] = useState<string[]>(event.assignedTo.map((m) => m.id));
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  async function handleSave() {
+    if (!title) return;
+    setLoading(true);
+    setErrorMsg(null);
+
+    const startDate = allDay ? new Date(`${eventDate}T00:00:00`) : new Date(`${eventDate}T${startTime}:00`);
+    const endDate = allDay
+      ? new Date(new Date(`${eventDate}T00:00:00`).getTime() + 86400000)
+      : new Date(`${eventDate}T${endTime}:00`);
+
+    try {
+      const res = await fetch(`/api/families/${familyId}/calendar/${realEventId}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          start: startDate.toISOString(),
+          end: endDate.toISOString(),
+          allDay,
+          assignedTo: selectedMembers,
+        }),
+      });
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg((data as { error?: string }).error || t("saveFailed"));
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setErrorMsg(t("saveFailed"));
+      setLoading(false);
+      return;
+    }
+    setLoading(false);
+    onSaved();
+  }
+
+  async function handleDelete() {
+    if (!confirm(t("deleteConfirm"))) return;
+    setDeleting(true);
+    try {
+      await fetch(`/api/families/${familyId}/calendar/${realEventId}`, { method: "DELETE" });
+    } catch {}
+    setDeleting(false);
+    onSaved();
+  }
+
+  function toggleMember(id: string) {
+    setSelectedMembers((prev) =>
+      prev.includes(id) ? prev.filter((m) => m !== id) : [...prev, id]
+    );
+  }
+
+  return (
+    <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50" onClick={onClose}>
+      <div
+        className="w-full max-w-md p-6 mx-4 max-h-[90vh] overflow-y-auto"
+        style={{
+          backgroundColor: "var(--color-surface)",
+          borderRadius: "var(--border-radius)",
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <h2 className="text-xl font-bold mb-4">{t("editEvent")}</h2>
+
+        <label className="block mb-1 text-sm font-semibold">{t("eventTitle")}</label>
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          className="w-full mb-3 p-2 outline-none"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--color-text)",
+            borderRadius: "calc(var(--border-radius) / 2)",
+          }}
+        />
+
+        <label className="block mb-1 text-sm font-semibold">{t("eventDescription")}</label>
+        <input
+          type="text"
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
+          className="w-full mb-3 p-2 outline-none"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--color-text)",
+            borderRadius: "calc(var(--border-radius) / 2)",
+          }}
+        />
+
+        <label className="block mb-1 text-sm font-semibold">{t("eventDate")}</label>
+        <input
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
+          className="w-full mb-3 p-2 outline-none"
+          style={{
+            backgroundColor: "rgba(255,255,255,0.05)",
+            border: "1px solid rgba(255,255,255,0.1)",
+            color: "var(--color-text)",
+            borderRadius: "calc(var(--border-radius) / 2)",
+          }}
+        />
+
+        <label className="flex items-center gap-2 mb-3 cursor-pointer">
+          <input type="checkbox" checked={allDay} onChange={(e) => setAllDay(e.target.checked)} />
+          <span className="text-sm font-semibold">{t("eventAllDay")}</span>
+        </label>
+
+        {!allDay && (
+          <div className="flex gap-3 mb-3">
+            <div className="flex-1">
+              <label className="block mb-1 text-sm font-semibold">{t("eventStart")}</label>
+              <input
+                type="time"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+                className="w-full p-2 outline-none"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--color-text)",
+                  borderRadius: "calc(var(--border-radius) / 2)",
+                }}
+              />
+            </div>
+            <div className="flex-1">
+              <label className="block mb-1 text-sm font-semibold">{t("eventEnd")}</label>
+              <input
+                type="time"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+                className="w-full p-2 outline-none"
+                style={{
+                  backgroundColor: "rgba(255,255,255,0.05)",
+                  border: "1px solid rgba(255,255,255,0.1)",
+                  color: "var(--color-text)",
+                  borderRadius: "calc(var(--border-radius) / 2)",
+                }}
+              />
+            </div>
+          </div>
+        )}
+
+        <label className="block mb-1 text-sm font-semibold">{t("eventAssignTo")}</label>
+        <div className="flex flex-wrap gap-2 mb-4">
+          {members.map((member) => (
+            <button
+              key={member.id}
+              onClick={() => toggleMember(member.id)}
+              className="text-sm px-3 py-1 cursor-pointer transition-all"
+              style={{
+                borderRadius: "var(--border-radius)",
+                backgroundColor: selectedMembers.includes(member.id)
+                  ? member.color
+                  : "var(--color-background)",
+                color: selectedMembers.includes(member.id) ? "#fff" : "var(--color-text)",
+              }}
+            >
+              {member.name}
+            </button>
+          ))}
+        </div>
+
+        {errorMsg && (
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--color-danger, #e53e3e)" }}>
+            {errorMsg}
+          </p>
+        )}
+
+        <div className="flex gap-3">
+          <button
+            onClick={handleDelete}
+            disabled={deleting}
+            className="py-2 px-4 font-semibold cursor-pointer disabled:opacity-50"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "rgba(255,107,107,0.15)",
+              color: "#FF6B6B",
+            }}
+          >
+            {deleting ? "..." : t("deleteEvent")}
+          </button>
+          <button
+            onClick={onClose}
+            className="flex-1 py-2 font-semibold cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "var(--color-background)",
+            }}
+          >
+            {t("cancel")}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={!title || loading}
+            className="flex-1 py-2 text-white font-semibold disabled:opacity-50 cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "var(--color-primary)",
+            }}
+          >
+            {loading ? "..." : t("save")}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }
