@@ -27,7 +27,7 @@ interface CalendarFullViewProps {
   onBack: () => void;
 }
 
-type ViewMode = "day" | "week";
+type ViewMode = "day" | "week" | "month";
 
 export function CalendarFullView({
   familyId,
@@ -50,10 +50,28 @@ export function CalendarFullView({
     const newDate = new Date(currentDate);
     if (viewMode === "day") {
       newDate.setDate(newDate.getDate() + direction);
-    } else {
+    } else if (viewMode === "week") {
       newDate.setDate(newDate.getDate() + direction * 7);
+    } else {
+      newDate.setMonth(newDate.getMonth() + direction);
     }
     setCurrentDate(newDate);
+  }
+
+  function getHeaderLabel() {
+    if (viewMode === "day") {
+      return currentDate.toLocaleDateString(locale, {
+        month: "long",
+        year: "numeric",
+        day: "numeric",
+        weekday: "long",
+      });
+    }
+    if (viewMode === "month") {
+      return currentDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
+    }
+    // week
+    return currentDate.toLocaleDateString(locale, { month: "long", year: "numeric" });
   }
 
   return (
@@ -83,11 +101,7 @@ export function CalendarFullView({
             ‹
           </button>
           <span className="font-bold text-lg">
-            {currentDate.toLocaleDateString(locale, {
-              month: "long",
-              year: "numeric",
-              ...(viewMode === "day" && { day: "numeric", weekday: "long" }),
-            })}
+            {getHeaderLabel()}
           </span>
           <button onClick={() => navigateDate(1)} className="text-lg cursor-pointer px-2">
             ›
@@ -95,7 +109,7 @@ export function CalendarFullView({
         </div>
 
         <div className="flex gap-1">
-          {(["day", "week"] as const).map((mode) => (
+          {(["day", "week", "month"] as const).map((mode) => (
             <button
               key={mode}
               onClick={() => setViewMode(mode)}
@@ -124,6 +138,16 @@ export function CalendarFullView({
         {viewMode === "week" ? (
           <WeekView
             weekDays={weekDays}
+            events={events}
+            locale={locale}
+            onDayClick={(date) => {
+              setCurrentDate(date);
+              setViewMode("day");
+            }}
+          />
+        ) : viewMode === "month" ? (
+          <MonthView
+            currentDate={currentDate}
             events={events}
             locale={locale}
             onDayClick={(date) => {
@@ -161,6 +185,117 @@ export function CalendarFullView({
           }}
         />
       )}
+    </div>
+  );
+}
+
+function MonthView({
+  currentDate,
+  events,
+  locale,
+  onDayClick,
+}: {
+  currentDate: Date;
+  events: CalendarEvent[];
+  locale: string;
+  onDayClick: (date: Date) => void;
+}) {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Build 6x7 grid starting from the Monday of the first week that contains day 1
+  const firstOfMonth = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
+  const firstOfMonthDay = firstOfMonth.getDay(); // 0=Sun,1=Mon,...
+  // Offset so week starts Monday
+  const startOffset = firstOfMonthDay === 0 ? -6 : 1 - firstOfMonthDay;
+  const gridStart = new Date(firstOfMonth);
+  gridStart.setDate(gridStart.getDate() + startOffset);
+  gridStart.setHours(0, 0, 0, 0);
+
+  const days: Date[] = Array.from({ length: 42 }, (_, i) => {
+    const d = new Date(gridStart);
+    d.setDate(d.getDate() + i);
+    return d;
+  });
+
+  // Weekday headers (Mon–Sun)
+  const weekdayHeaders = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(gridStart);
+    d.setDate(d.getDate() + i);
+    return d.toLocaleDateString(locale, { weekday: "short" });
+  });
+
+  return (
+    <div>
+      {/* Weekday headers */}
+      <div className="grid grid-cols-7 gap-1 mb-1">
+        {weekdayHeaders.map((name, i) => (
+          <div
+            key={i}
+            className="text-center text-xs font-semibold py-1"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            {name}
+          </div>
+        ))}
+      </div>
+
+      {/* Day grid */}
+      <div className="grid grid-cols-7 gap-1">
+        {days.map((day) => {
+          const dayStr = day.toISOString().split("T")[0];
+          const dayEvents = events.filter((e) => {
+            const eventDay = new Date(e.start).toISOString().split("T")[0];
+            return eventDay === dayStr;
+          });
+          const isToday = day.getTime() === today.getTime();
+          const isCurrentMonth = day.getMonth() === currentDate.getMonth();
+
+          return (
+            <button
+              key={dayStr}
+              onClick={() => onDayClick(day)}
+              className="text-left p-1.5 min-h-[80px] cursor-pointer transition-colors"
+              style={{
+                borderRadius: "calc(var(--border-radius) / 2)",
+                backgroundColor: isToday
+                  ? "color-mix(in srgb, var(--color-primary) 10%, transparent)"
+                  : "var(--color-background)",
+                opacity: isCurrentMonth ? 1 : 0.4,
+              }}
+            >
+              <div
+                className="text-sm font-bold mb-1"
+                style={{ color: isToday ? "var(--color-primary)" : "var(--color-text)" }}
+              >
+                {day.getDate()}
+              </div>
+              <div className="space-y-0.5">
+                {dayEvents.slice(0, 2).map((event) => (
+                  <div
+                    key={event.id}
+                    className="text-xs px-1 py-0.5 rounded truncate"
+                    style={{
+                      backgroundColor:
+                        event.assignedTo[0]?.color
+                          ? `color-mix(in srgb, ${event.assignedTo[0].color} 20%, transparent)`
+                          : "var(--color-accent)",
+                      color: "var(--color-text)",
+                    }}
+                  >
+                    {event.title}
+                  </div>
+                ))}
+                {dayEvents.length > 2 && (
+                  <div className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                    +{dayEvents.length - 2}
+                  </div>
+                )}
+              </div>
+            </button>
+          );
+        })}
+      </div>
     </div>
   );
 }
@@ -301,6 +436,24 @@ function DayView({ events, locale }: { events: CalendarEvent[]; locale: string }
   );
 }
 
+type RecurrenceMode = "none" | "daily" | "weekly" | "monthly";
+
+const WEEKDAY_RRULE_KEYS = ["MO", "TU", "WE", "TH", "FR", "SA", "SU"] as const;
+const WEEKDAY_TRANSLATION_KEYS = ["mon", "tue", "wed", "thu", "fri", "sat", "sun"] as const;
+
+function buildRRule(mode: RecurrenceMode, weekdays: string[]): string | null {
+  if (mode === "none") return null;
+  if (mode === "daily") return "FREQ=DAILY";
+  if (mode === "monthly") return "FREQ=MONTHLY";
+  if (mode === "weekly") {
+    if (weekdays.length > 0) {
+      return `FREQ=WEEKLY;BYDAY=${weekdays.join(",")}`;
+    }
+    return "FREQ=WEEKLY";
+  }
+  return null;
+}
+
 function AddEventForm({
   familyId,
   members,
@@ -315,36 +468,65 @@ function AddEventForm({
   onSaved: () => void;
 }) {
   const t = useTranslations("calendar");
+
+  // Default event date: use today in YYYY-MM-DD local format
+  const todayStr = formatDateLocal(new Date());
+
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [allDay, setAllDay] = useState(false);
+  const [eventDate, setEventDate] = useState(todayStr);
   const [startTime, setStartTime] = useState("09:00");
   const [endTime, setEndTime] = useState("10:00");
   const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
   const [loading, setLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+
+  // Recurrence state
+  const [recurrenceMode, setRecurrenceMode] = useState<RecurrenceMode>("none");
+  const [selectedWeekdays, setSelectedWeekdays] = useState<string[]>([]);
+  const [recurrenceEnd, setRecurrenceEnd] = useState("");
 
   async function handleSave() {
     if (!title) return;
     setLoading(true);
+    setErrorMsg(null);
 
-    const dateStr = date.toISOString().split("T")[0];
+    const dateStr = eventDate;
     const start = allDay ? `${dateStr}T00:00:00Z` : `${dateStr}T${startTime}:00Z`;
     const end = allDay
-      ? new Date(date.getTime() + 86400000).toISOString()
+      ? new Date(new Date(dateStr).getTime() + 86400000).toISOString()
       : `${dateStr}T${endTime}:00Z`;
 
-    await fetch(`/api/families/${familyId}/calendar`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        title,
-        description: description || null,
-        start,
-        end,
-        allDay,
-        assignedTo: selectedMembers,
-      }),
-    });
+    const recurrence = buildRRule(recurrenceMode, selectedWeekdays);
+
+    try {
+      const res = await fetch(`/api/families/${familyId}/calendar`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          title,
+          description: description || null,
+          start,
+          end,
+          allDay,
+          assignedTo: selectedMembers,
+          recurrence,
+          recurrenceEnd: recurrenceEnd ? new Date(recurrenceEnd).toISOString() : null,
+        }),
+      });
+
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        setErrorMsg((data as { error?: string }).error || t("saveFailed"));
+        setLoading(false);
+        return;
+      }
+    } catch {
+      setErrorMsg(t("saveFailed"));
+      setLoading(false);
+      return;
+    }
 
     setLoading(false);
     onSaved();
@@ -356,10 +538,16 @@ function AddEventForm({
     );
   }
 
+  function toggleWeekday(key: string) {
+    setSelectedWeekdays((prev) =>
+      prev.includes(key) ? prev.filter((d) => d !== key) : [...prev, key]
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center bg-black/50" onClick={onClose}>
       <div
-        className="w-full max-w-md p-6 mx-4"
+        className="w-full max-w-md p-6 mx-4 max-h-[90vh] overflow-y-auto"
         style={{
           backgroundColor: "var(--color-surface)",
           borderRadius: "var(--border-radius)",
@@ -382,6 +570,16 @@ function AddEventForm({
           type="text"
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          className="w-full mb-3 p-2 border border-gray-200 outline-none"
+          style={{ borderRadius: "calc(var(--border-radius) / 2)" }}
+        />
+
+        {/* Date picker */}
+        <label className="block mb-1 text-sm font-semibold">{t("eventDate")}</label>
+        <input
+          type="date"
+          value={eventDate}
+          onChange={(e) => setEventDate(e.target.value)}
           className="w-full mb-3 p-2 border border-gray-200 outline-none"
           style={{ borderRadius: "calc(var(--border-radius) / 2)" }}
         />
@@ -416,6 +614,57 @@ function AddEventForm({
           </div>
         )}
 
+        {/* Recurrence picker */}
+        <label className="block mb-1 text-sm font-semibold">{t("recurrence")}</label>
+        <select
+          value={recurrenceMode}
+          onChange={(e) => setRecurrenceMode(e.target.value as RecurrenceMode)}
+          className="w-full mb-3 p-2 border border-gray-200 outline-none"
+          style={{ borderRadius: "calc(var(--border-radius) / 2)", backgroundColor: "var(--color-background)" }}
+        >
+          <option value="none">{t("recurrenceNone")}</option>
+          <option value="daily">{t("recurrenceDaily")}</option>
+          <option value="weekly">{t("recurrenceWeekly")}</option>
+          <option value="monthly">{t("recurrenceMonthly")}</option>
+        </select>
+
+        {/* Weekly day-of-week checkboxes */}
+        {recurrenceMode === "weekly" && (
+          <div className="flex flex-wrap gap-2 mb-3">
+            {WEEKDAY_RRULE_KEYS.map((key, i) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => toggleWeekday(key)}
+                className="text-xs px-2 py-1 cursor-pointer font-semibold"
+                style={{
+                  borderRadius: "var(--border-radius)",
+                  backgroundColor: selectedWeekdays.includes(key)
+                    ? "var(--color-primary)"
+                    : "var(--color-background)",
+                  color: selectedWeekdays.includes(key) ? "#fff" : "var(--color-text)",
+                }}
+              >
+                {t(WEEKDAY_TRANSLATION_KEYS[i])}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Recurrence end date */}
+        {recurrenceMode !== "none" && (
+          <>
+            <label className="block mb-1 text-sm font-semibold">{t("recurrenceEnd")}</label>
+            <input
+              type="date"
+              value={recurrenceEnd}
+              onChange={(e) => setRecurrenceEnd(e.target.value)}
+              className="w-full mb-3 p-2 border border-gray-200 outline-none"
+              style={{ borderRadius: "calc(var(--border-radius) / 2)" }}
+            />
+          </>
+        )}
+
         <label className="block mb-1 text-sm font-semibold">{t("eventAssignTo")}</label>
         <div className="flex flex-wrap gap-2 mb-4">
           {members.map((member) => (
@@ -435,6 +684,12 @@ function AddEventForm({
             </button>
           ))}
         </div>
+
+        {errorMsg && (
+          <p className="mb-3 text-sm font-semibold" style={{ color: "var(--color-danger, #e53e3e)" }}>
+            {errorMsg}
+          </p>
+        )}
 
         <div className="flex gap-3">
           <button
@@ -485,4 +740,12 @@ function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
 
 function formatTime(dateStr: string, locale: string): string {
   return new Date(dateStr).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" });
+}
+
+/** Format a Date as YYYY-MM-DD in local time (for date input default) */
+function formatDateLocal(d: Date): string {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
 }
