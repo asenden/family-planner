@@ -12,11 +12,13 @@ async function getFamilyData() {
   if (!family) return null;
 
   const now = new Date();
-  const endOfWeek = new Date(now);
-  endOfWeek.setDate(endOfWeek.getDate() + 7);
+  const ninetyDaysAgo = new Date(now);
+  ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
+  const ninetyDaysAhead = new Date(now);
+  ninetyDaysAhead.setDate(ninetyDaysAhead.getDate() + 90);
 
   const events = await db.calendarEvent.findMany({
-    where: { familyId: family.id, start: { gte: now } },
+    where: { familyId: family.id, start: { gte: ninetyDaysAgo, lte: ninetyDaysAhead } },
     include: { assignedTo: { select: { id: true, name: true, color: true } } },
     orderBy: { start: "asc" },
   });
