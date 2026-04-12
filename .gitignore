@@ -1,4 +1,24 @@
 .superpowers/
+
+# dependencies
 node_modules/
+
+# next
+.next/
+out/
+
+# env
 .env
 .env.local
+.env*.local
+
+# misc
+.DS_Store
+*.pem
+
+# debug
+npm-debug.log*
+
+# typescript
+*.tsbuildinfo
+next-env.d.ts
