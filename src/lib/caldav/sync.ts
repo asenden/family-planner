@@ -81,12 +81,13 @@ export async function syncCalendarAccount(
   };
 
   const now = new Date();
+  const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago
   const end = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
 
   const remoteEvents = await fetchEvents(
     connectOptions,
     account.calendarId || "",
-    { start: now, end },
+    { start, end },
   );
 
   const localEvents = await db.calendarEvent.findMany({

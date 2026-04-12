@@ -21,16 +21,35 @@ export interface EventToIcsInput {
 export function icsToEvent(icsData: string): ParsedEvent {
   const jcal = ICAL.parse(icsData);
   const comp = new ICAL.Component(jcal);
-  const vevent = comp.getFirstSubcomponent("vevent")!;
-  const event = new ICAL.Event(vevent);
 
-  const isAllDay = event.startDate.isDate;
+  // Handle VCALENDAR wrapping VTIMEZONE + VEVENT
+  const vcal = comp.name === "vcalendar" ? comp : null;
+  const vevent = (vcal ?? comp).getFirstSubcomponent("vevent");
+  if (!vevent) throw new Error("No VEVENT component found in ICS data");
+
+  // Pass the parent VCALENDAR so ical.js can resolve VTIMEZONE components
+  const event = new ICAL.Event(vevent, { strictExceptions: false });
+
+  const startDate = event.startDate;
+  if (!startDate) throw new Error("VEVENT has no DTSTART");
+
+  // isDate is true only for VALUE=DATE (all-day), false for date-time (including TZID)
+  const isAllDay = startDate.isDate === true;
+
+  // endDate may be missing for all-day events (DTEND defaults to DTSTART + 1 day)
+  let endDate = event.endDate;
+  if (!endDate) {
+    endDate = startDate.clone();
+    if (isAllDay) {
+      endDate.day += 1;
+    }
+  }
 
   return {
     title: event.summary || "",
     description: event.description || null,
-    start: event.startDate.toJSDate(),
-    end: event.endDate.toJSDate(),
+    start: startDate.toJSDate(),
+    end: endDate.toJSDate(),
     allDay: isAllDay,
     externalId: event.uid,
   };

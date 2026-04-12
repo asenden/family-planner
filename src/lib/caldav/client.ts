@@ -73,7 +73,8 @@ export async function fetchEvents(
     .map((obj) => {
       try {
         return icsToEvent(obj.data);
-      } catch {
+      } catch (e) {
+        console.error("Failed to parse ICS event:", e, obj.data?.substring(0, 200));
         return null;
       }
     })

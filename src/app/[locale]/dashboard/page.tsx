@@ -34,17 +34,21 @@ async function getFamilyData(locale: string) {
     orderBy: { start: "asc" },
   });
 
-  // Sync CalDAV accounts on page load
+  // Sync CalDAV accounts — only if stale (> 5 minutes since last sync)
+  const SYNC_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
   const accounts = await db.calendarAccount.findMany({
     where: { familyId: family.id, syncEnabled: true },
-    select: { id: true },
+    select: { id: true, lastSyncAt: true },
   });
-  for (const account of accounts) {
-    try {
-      await syncCalendarAccount(account.id);
-    } catch {
-      // Sync failed — continue with stale data
-    }
+
+  const staleAccounts = accounts.filter(
+    (a) => !a.lastSyncAt || now.getTime() - a.lastSyncAt.getTime() > SYNC_INTERVAL_MS
+  );
+
+  if (staleAccounts.length > 0) {
+    await Promise.allSettled(
+      staleAccounts.map((a) => syncCalendarAccount(a.id))
+    );
   }
 
   // Re-fetch events after sync
