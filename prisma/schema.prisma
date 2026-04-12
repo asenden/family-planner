@@ -75,6 +75,9 @@ model CalendarEvent {
   recurrence    String?
   recurrenceEnd DateTime?
 
+  calendarAccountId String?
+  calendarAccount   CalendarAccount? @relation(fields: [calendarAccountId], references: [id], onDelete: SetNull)
+
   familyId   String
   family     Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
   assignedTo FamilyMember[] @relation("EventAssignees")
@@ -109,6 +112,8 @@ model CalendarAccount {
   member   FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
   familyId String
   family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  events CalendarEvent[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

@@ -93,7 +93,7 @@ export async function syncCalendarAccount(
   const localEvents = await db.calendarEvent.findMany({
     where: {
       familyId: account.familyId,
-      source: account.provider,
+      calendarAccountId: account.id,
       externalId: { not: null },
     },
     select: {
@@ -125,6 +125,7 @@ export async function syncCalendarAccount(
         externalId: event.externalId,
         source: account.provider,
         familyId: account.familyId,
+        calendarAccountId: account.id,
         lastSyncedAt: new Date(),
       },
     });
