@@ -1,8 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
+import { useRouter } from "next/navigation";
 import { List, Columns3 } from "lucide-react";
 
 interface CalendarEvent {
@@ -38,6 +39,7 @@ export function CalendarFullView({
 }: CalendarFullViewProps) {
   const t = useTranslations("calendar");
   const locale = useLocale();
+  const router = useRouter();
   const [viewMode, setViewMode] = useState<ViewMode>("week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
@@ -225,7 +227,7 @@ export function CalendarFullView({
           onClose={() => setShowAddForm(false)}
           onSaved={() => {
             setShowAddForm(false);
-            window.location.reload();
+            router.refresh();
           }}
         />
       )}
@@ -239,7 +241,7 @@ export function CalendarFullView({
           onClose={() => setEditingEvent(null)}
           onSaved={() => {
             setEditingEvent(null);
-            window.location.reload();
+            router.refresh();
           }}
         />
       )}
