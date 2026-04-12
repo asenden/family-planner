@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { generateInviteCode } from "@/lib/invite-code";
 
+export async function GET() {
+  const family = await db.family.findFirst({ select: { id: true, name: true } });
+  if (!family) return NextResponse.json({ error: "No family found" }, { status: 404 });
+  return NextResponse.json({ familyId: family.id, familyName: family.name });
+}
+
 export async function POST(request: Request) {
   const body = await request.json();
   const { familyName, memberName, email, password, color } = body;
