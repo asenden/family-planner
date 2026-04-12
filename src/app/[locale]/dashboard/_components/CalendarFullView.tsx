@@ -1,10 +1,23 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect, type Dispatch, type SetStateAction } from "react";
 import { useTranslations } from "next-intl";
 import { useLocale } from "next-intl";
 import { useRouter } from "next/navigation";
 import { List, Columns3 } from "lucide-react";
+
+function usePersistedState<T extends string>(key: string, defaultValue: T): [T, Dispatch<SetStateAction<T>>] {
+  const [value, setValue] = useState<T>(() => {
+    if (typeof window === "undefined") return defaultValue;
+    return (localStorage.getItem(key) as T) || defaultValue;
+  });
+
+  useEffect(() => {
+    localStorage.setItem(key, value);
+  }, [key, value]);
+
+  return [value, setValue];
+}
 
 interface CalendarEvent {
   id: string;
@@ -40,11 +53,11 @@ export function CalendarFullView({
   const t = useTranslations("calendar");
   const locale = useLocale();
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<ViewMode>("week");
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>("fd-cal-view", "week");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
-  const [dayViewMode, setDayViewMode] = useState<"list" | "columns">("list");
+  const [dayViewMode, setDayViewMode] = usePersistedState<"list" | "columns">("fd-cal-dayview", "list");
 
   const weekDays = getWeekDays(currentDate, locale);
   const dayEvents = viewMode === "day"
