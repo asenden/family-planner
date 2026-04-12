@@ -243,9 +243,9 @@ function MonthView({
       {/* Day grid */}
       <div className="grid grid-cols-7 gap-1">
         {days.map((day) => {
-          const dayStr = day.toISOString().split("T")[0];
+          const dayStr = toLocalDateStr(day);
           const dayEvents = events.filter((e) => {
-            const eventDay = new Date(e.start).toISOString().split("T")[0];
+            const eventDay = toLocalDateStr(new Date(e.start));
             return eventDay === dayStr;
           });
           const isToday = day.getTime() === today.getTime();
@@ -317,9 +317,9 @@ function WeekView({
   return (
     <div className="grid grid-cols-7 gap-2">
       {weekDays.map((day) => {
-        const dayStr = day.toISOString().split("T")[0];
+        const dayStr = toLocalDateStr(day);
         const dayEvents = events.filter((e) => {
-          const eventDay = new Date(e.start).toISOString().split("T")[0];
+          const eventDay = toLocalDateStr(new Date(e.start));
           return eventDay === dayStr;
         });
 
@@ -493,10 +493,12 @@ function AddEventForm({
     setErrorMsg(null);
 
     const dateStr = eventDate;
-    const start = allDay ? `${dateStr}T00:00:00Z` : `${dateStr}T${startTime}:00Z`;
-    const end = allDay
-      ? new Date(new Date(dateStr).getTime() + 86400000).toISOString()
-      : `${dateStr}T${endTime}:00Z`;
+    const startDate = allDay ? new Date(`${dateStr}T00:00:00`) : new Date(`${dateStr}T${startTime}:00`);
+    const endDate = allDay
+      ? new Date(new Date(`${dateStr}T00:00:00`).getTime() + 86400000)
+      : new Date(`${dateStr}T${endTime}:00`);
+    const start = startDate.toISOString();
+    const end = endDate.toISOString();
 
     const recurrence = buildRRule(recurrenceMode, selectedWeekdays);
 
@@ -734,8 +736,12 @@ function getWeekDays(date: Date, _locale: string): Date[] {
 }
 
 function getEventsForDay(events: CalendarEvent[], date: Date): CalendarEvent[] {
-  const dayStr = date.toISOString().split("T")[0];
-  return events.filter((e) => new Date(e.start).toISOString().split("T")[0] === dayStr);
+  const dayStr = toLocalDateStr(date);
+  return events.filter((e) => toLocalDateStr(new Date(e.start)) === dayStr);
+}
+
+function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
 function formatTime(dateStr: string, locale: string): string {

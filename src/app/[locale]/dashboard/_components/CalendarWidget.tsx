@@ -102,6 +102,10 @@ interface EventGroup {
   events: CalendarEvent[];
 }
 
+function toLocalDateStr(date: Date): string {
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 function groupByDate(events: CalendarEvent[], locale: string, todayLabel: string, tomorrowLabel: string): EventGroup[] {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -112,14 +116,13 @@ function groupByDate(events: CalendarEvent[], locale: string, todayLabel: string
 
   for (const event of events) {
     const eventDate = new Date(event.start);
-    eventDate.setHours(0, 0, 0, 0);
-    const key = eventDate.toISOString().split("T")[0];
+    const key = toLocalDateStr(eventDate);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key)!.push(event);
   }
 
   return Array.from(groups.entries()).map(([dateKey, evts]) => {
-    const date = new Date(dateKey + "T00:00:00");
+    const date = new Date(dateKey + "T00:00:00"); // local time since key is already local
     let label: string;
 
     if (date.getTime() === today.getTime()) {

@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { TopBar } from "./_components/TopBar";
 import { WidgetGrid } from "./_components/WidgetGrid";
 import { IdleScreensaver } from "./_components/IdleScreensaver";
+import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
 
 async function getFamilyData() {
   const family = await db.family.findFirst({
@@ -23,14 +24,26 @@ async function getFamilyData() {
     orderBy: { start: "asc" },
   });
 
+  const expandedEvents = expandRecurringEvents(
+    events.map((e) => ({
+      id: e.id,
+      title: e.title,
+      description: e.description,
+      start: e.start.toISOString(),
+      end: e.end.toISOString(),
+      allDay: e.allDay,
+      recurrence: e.recurrence,
+      recurrenceEnd: e.recurrenceEnd?.toISOString() || null,
+      assignedTo: e.assignedTo,
+    })),
+    ninetyDaysAgo,
+    ninetyDaysAhead
+  );
+
   return {
     familyId: family.id,
     members: family.members,
-    events: events.map((e) => ({
-      id: e.id, title: e.title, description: e.description,
-      start: e.start.toISOString(), end: e.end.toISOString(),
-      allDay: e.allDay, assignedTo: e.assignedTo,
-    })),
+    events: expandedEvents,
   };
 }
 
