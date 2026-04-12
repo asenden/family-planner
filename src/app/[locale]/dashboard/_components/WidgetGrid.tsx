@@ -32,6 +32,7 @@ interface WidgetGridProps {
 export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
+  const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>();
 
   if (fullView === "calendar" && familyId) {
     return (
@@ -39,6 +40,7 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
         familyId={familyId}
         events={calendarEvents}
         members={familyMembers}
+        initialDate={calendarInitialDate}
         onBack={() => setFullView(null)}
       />
     );
@@ -46,7 +48,17 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
 
   return (
     <div className="grid grid-cols-3 gap-4">
-      <CalendarWidget events={calendarEvents} onTap={() => setFullView("calendar")} />
+      <CalendarWidget
+        events={calendarEvents}
+        onTap={(dateStr) => {
+          if (dateStr) {
+            setCalendarInitialDate(new Date(dateStr + "T00:00:00"));
+          } else {
+            setCalendarInitialDate(undefined);
+          }
+          setFullView("calendar");
+        }}
+      />
 
       <WidgetCard
         title={t("widgets.routines")}

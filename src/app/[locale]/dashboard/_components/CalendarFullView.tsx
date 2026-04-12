@@ -39,6 +39,7 @@ interface CalendarFullViewProps {
   familyId: string;
   events: CalendarEvent[];
   members: FamilyMember[];
+  initialDate?: Date;
   onBack: () => void;
 }
 
@@ -48,13 +49,14 @@ export function CalendarFullView({
   familyId,
   events,
   members,
+  initialDate,
   onBack,
 }: CalendarFullViewProps) {
   const t = useTranslations("calendar");
   const locale = useLocale();
   const router = useRouter();
-  const [viewMode, setViewMode] = usePersistedState<ViewMode>("fd-cal-view", "week");
-  const [currentDate, setCurrentDate] = useState(new Date());
+  const [viewMode, setViewMode] = usePersistedState<ViewMode>("fd-cal-view", initialDate ? "day" : "week");
+  const [currentDate, setCurrentDate] = useState(initialDate || new Date());
   const [showAddForm, setShowAddForm] = useState(false);
   const [editingEvent, setEditingEvent] = useState<CalendarEvent | null>(null);
   const [dayViewMode, setDayViewMode] = usePersistedState<"list" | "columns">("fd-cal-dayview", "list");

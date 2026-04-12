@@ -16,7 +16,7 @@ interface CalendarEvent {
 interface CalendarWidgetProps {
   events: CalendarEvent[];
   maxEvents?: number;
-  onTap: () => void;
+  onTap: (date?: string) => void;
 }
 
 const MAX_EVENTS_DEFAULT = 10;
@@ -36,12 +36,15 @@ export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }
   const grouped = groupByDate(upcoming, locale, t("today"), t("tomorrow"));
 
   return (
-    <button
-      onClick={onTap}
-      className="glass glass-hover w-full text-left p-5 cursor-pointer overflow-hidden animate-slide-up"
+    <div
+      className="glass glass-hover w-full text-left p-5 overflow-hidden animate-slide-up"
       style={{ borderRadius: "var(--border-radius)", animationDelay: "50ms" }}
     >
-      <div className="flex items-center gap-3 mb-4">
+      {/* Header — opens calendar at today */}
+      <button
+        onClick={() => onTap()}
+        className="flex items-center gap-3 mb-4 w-full cursor-pointer"
+      >
         <div
           className="w-10 h-10 rounded-xl flex items-center justify-center shrink-0"
           style={{
@@ -56,22 +59,34 @@ export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }
         <span className="text-[11px] font-bold uppercase tracking-[0.15em]" style={{ color: CALENDAR_COLOR }}>
           {t("title")}
         </span>
-      </div>
+      </button>
+      {/* Events — each clickable, opens calendar at that day */}
       <div className="text-sm space-y-2.5">
         {grouped.length === 0 ? (
-          <p style={{ color: "var(--color-text-muted)" }}>{t("noEvents")}</p>
+          <button onClick={() => onTap()} className="cursor-pointer w-full text-left">
+            <p style={{ color: "var(--color-text-muted)" }}>{t("noEvents")}</p>
+          </button>
         ) : (
           grouped.map((group) => (
             <div key={group.dateKey}>
-              <p
-                className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1.5"
-                style={{ color: "var(--color-secondary)" }}
+              <button
+                onClick={() => onTap(group.dateKey)}
+                className="cursor-pointer"
               >
-                {group.label}
-              </p>
+                <p
+                  className="text-[10px] font-bold uppercase tracking-[0.12em] mb-1.5"
+                  style={{ color: "var(--color-secondary)" }}
+                >
+                  {group.label}
+                </p>
+              </button>
               <div className="space-y-1.5">
                 {group.events.map((event) => (
-                  <div key={event.id} className="flex items-center gap-2.5">
+                  <button
+                    key={event.id}
+                    onClick={() => onTap(toLocalDateStr(new Date(event.start)))}
+                    className="flex items-center gap-2.5 w-full cursor-pointer rounded-lg px-1 -mx-1 py-0.5 transition-colors hover:bg-white/5"
+                  >
                     <div className="flex gap-0.5 shrink-0">
                       {event.assignedTo.length > 0 ? (
                         event.assignedTo.map((member) => (
@@ -87,24 +102,24 @@ export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }
                       )}
                     </div>
                     <span
-                      className="text-[11px] shrink-0 w-10 tabular-nums"
+                      className="text-[11px] shrink-0 w-10 tabular-nums text-left"
                       style={{ color: "var(--color-text-muted)" }}
                     >
                       {event.allDay
                         ? "—"
                         : new Date(event.start).toLocaleTimeString(locale, { hour: "2-digit", minute: "2-digit" })}
                     </span>
-                    <span className="truncate text-[13px]" style={{ color: "var(--color-text)" }}>
+                    <span className="truncate text-[13px] text-left" style={{ color: "var(--color-text)" }}>
                       {event.title}
                     </span>
-                  </div>
+                  </button>
                 ))}
               </div>
             </div>
           ))
         )}
       </div>
-    </button>
+    </div>
   );
 }
 
