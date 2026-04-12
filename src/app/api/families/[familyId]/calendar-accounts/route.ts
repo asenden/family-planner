@@ -54,6 +54,21 @@ export async function POST(
 
   const firstCalendarId = calendars[0]?.url ?? null;
 
+  // If no memberId provided, use the first parent member of the family
+  let resolvedMemberId = memberId;
+  if (!resolvedMemberId) {
+    const firstMember = await db.familyMember.findFirst({
+      where: { familyId },
+      orderBy: { createdAt: "asc" },
+      select: { id: true },
+    });
+    resolvedMemberId = firstMember?.id;
+  }
+
+  if (!resolvedMemberId) {
+    return NextResponse.json({ error: "No family member found" }, { status: 400 });
+  }
+
   const account = await db.calendarAccount.create({
     data: {
       provider: provider as CalendarSource,
@@ -63,7 +78,7 @@ export async function POST(
       calendarId: firstCalendarId,
       syncEnabled: true,
       familyId,
-      ...(memberId ? { memberId } : {}),
+      memberId: resolvedMemberId,
     },
     select: {
       id: true,
