@@ -126,6 +126,17 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
     setTimeout(() => setLocationSaved(false), 3000);
   }
 
+  async function handleToggleAccount(accountId: string, enabled: boolean) {
+    await fetch(`/api/families/${familyId}/calendar-accounts/${accountId}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ syncEnabled: enabled }),
+    });
+    setAccounts((prev) =>
+      prev.map((a) => (a.id === accountId ? { ...a, syncEnabled: enabled } : a))
+    );
+  }
+
   async function handleRemoveAccount(accountId: string) {
     await fetch(`/api/families/${familyId}/calendar-accounts/${accountId}`, { method: "DELETE" });
     setAccounts((prev) => prev.filter((a) => a.id !== accountId));
@@ -263,17 +274,36 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                           </p>
                         </div>
                       </div>
-                      <button
-                        onClick={() => handleRemoveAccount(account.id)}
-                        className="text-xs px-2 py-1 cursor-pointer font-semibold"
-                        style={{
-                          color: "#FF6B6B",
-                          backgroundColor: "rgba(255,255,255,0.05)",
-                          borderRadius: "var(--border-radius)",
-                        }}
-                      >
-                        {tCal("remove")}
-                      </button>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button
+                          onClick={() => handleToggleAccount(account.id, !account.syncEnabled)}
+                          className="relative w-10 h-5 rounded-full cursor-pointer transition-colors"
+                          style={{
+                            backgroundColor: account.syncEnabled
+                              ? "var(--color-primary)"
+                              : "rgba(255,255,255,0.15)",
+                          }}
+                          title={account.syncEnabled ? "Sync an" : "Sync aus"}
+                        >
+                          <div
+                            className="absolute top-0.5 w-4 h-4 rounded-full bg-white transition-transform"
+                            style={{
+                              transform: account.syncEnabled ? "translateX(22px)" : "translateX(2px)",
+                            }}
+                          />
+                        </button>
+                        <button
+                          onClick={() => handleRemoveAccount(account.id)}
+                          className="text-xs px-2 py-1 cursor-pointer font-semibold"
+                          style={{
+                            color: "#FF6B6B",
+                            backgroundColor: "rgba(255,255,255,0.05)",
+                            borderRadius: "calc(var(--border-radius) / 2)",
+                          }}
+                        >
+                          ✕
+                        </button>
+                      </div>
                     </div>
                   ))}
 
