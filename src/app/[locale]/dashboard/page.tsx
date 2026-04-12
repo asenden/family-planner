@@ -4,6 +4,7 @@ import { db } from "@/lib/db";
 import { DashboardClient } from "./_components/DashboardClient";
 import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
 import { fetchWeather } from "@/lib/weather";
+import { syncCalendarAccount } from "@/lib/caldav/sync";
 import type { WeatherData } from "@/lib/weather";
 
 async function getFamilyData(locale: string) {
@@ -33,8 +34,28 @@ async function getFamilyData(locale: string) {
     orderBy: { start: "asc" },
   });
 
+  // Sync CalDAV accounts on page load
+  const accounts = await db.calendarAccount.findMany({
+    where: { familyId: family.id, syncEnabled: true },
+    select: { id: true },
+  });
+  for (const account of accounts) {
+    try {
+      await syncCalendarAccount(account.id);
+    } catch {
+      // Sync failed — continue with stale data
+    }
+  }
+
+  // Re-fetch events after sync
+  const syncedEvents = await db.calendarEvent.findMany({
+    where: { familyId: family.id, start: { gte: ninetyDaysAgo, lte: ninetyDaysAhead } },
+    include: { assignedTo: { select: { id: true, name: true, color: true } } },
+    orderBy: { start: "asc" },
+  });
+
   const expandedEvents = expandRecurringEvents(
-    events.map((e) => ({
+    syncedEvents.map((e) => ({
       id: e.id,
       title: e.title,
       description: e.description,

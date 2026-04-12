@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { fetchCalendars } from "@/lib/caldav/client";
+import { syncCalendarAccount } from "@/lib/caldav/sync";
 import type { CalendarSource } from "@/generated/prisma/enums";
 
 export async function GET(
@@ -74,6 +75,13 @@ export async function POST(
       calendarId: true,
     },
   });
+
+  // Trigger initial sync immediately after connecting
+  try {
+    await syncCalendarAccount(account.id);
+  } catch {
+    // Sync failed — account is still saved, sync will retry on next page load
+  }
 
   return NextResponse.json({ account }, { status: 201 });
 }
