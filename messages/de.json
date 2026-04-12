@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "FamilyDisplay",
+    "loading": "Laden...",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "back": "Zurück",
+    "next": "Weiter",
+    "done": "Fertig"
+  },
+  "setup": {
+    "title": "Willkommen bei FamilyDisplay",
+    "familyName": "Familienname",
+    "familyNamePlaceholder": "Familie Müller",
+    "yourName": "Dein Name",
+    "yourNamePlaceholder": "Alex",
+    "yourEmail": "Deine E-Mail",
+    "yourEmailPlaceholder": "alex@beispiel.de",
+    "password": "Passwort",
+    "chooseColor": "Wähle deine Farbe",
+    "create": "Familie erstellen",
+    "inviteCodeTitle": "Dein Familien-Code",
+    "inviteCodeDescription": "Teile diesen Code, damit andere deiner Familie beitreten können.",
+    "goToDashboard": "Zum Dashboard"
+  },
+  "join": {
+    "title": "Einer Familie beitreten",
+    "enterCode": "Gib den 6-stelligen Familien-Code ein",
+    "codePlaceholder": "ABC123",
+    "yourName": "Dein Name",
+    "yourRole": "Deine Rolle",
+    "roleParent": "Elternteil",
+    "roleChild": "Kind",
+    "chooseColor": "Wähle deine Farbe",
+    "join": "Beitreten"
+  },
+  "dashboard": {
+    "greeting": "Hallo, {name}!",
+    "widgets": {
+      "calendar": "Kalender",
+      "routines": "Routinen",
+      "pinboard": "Pinnwand",
+      "meal": "Mahlzeit",
+      "feelings": "Gefühle",
+      "photos": "Fotos"
+    },
+    "noEvents": "Keine anstehenden Termine",
+    "noMessages": "Noch keine Nachrichten",
+    "tapToOpen": "Tippen zum Öffnen"
+  },
+  "topbar": {
+    "today": "Heute"
+  }
+}

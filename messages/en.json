@@ -1,0 +1,54 @@
+{
+  "common": {
+    "appName": "FamilyDisplay",
+    "loading": "Loading...",
+    "save": "Save",
+    "cancel": "Cancel",
+    "back": "Back",
+    "next": "Next",
+    "done": "Done"
+  },
+  "setup": {
+    "title": "Welcome to FamilyDisplay",
+    "familyName": "Family Name",
+    "familyNamePlaceholder": "The Smith Family",
+    "yourName": "Your Name",
+    "yourNamePlaceholder": "Alex",
+    "yourEmail": "Your Email",
+    "yourEmailPlaceholder": "alex@example.com",
+    "password": "Password",
+    "chooseColor": "Choose your color",
+    "create": "Create Family",
+    "inviteCodeTitle": "Your Family Code",
+    "inviteCodeDescription": "Share this code so others can join your family.",
+    "goToDashboard": "Go to Dashboard"
+  },
+  "join": {
+    "title": "Join a Family",
+    "enterCode": "Enter the 6-digit family code",
+    "codePlaceholder": "ABC123",
+    "yourName": "Your Name",
+    "yourRole": "Your Role",
+    "roleParent": "Parent",
+    "roleChild": "Child",
+    "chooseColor": "Choose your color",
+    "join": "Join Family"
+  },
+  "dashboard": {
+    "greeting": "Hello, {name}!",
+    "widgets": {
+      "calendar": "Calendar",
+      "routines": "Routines",
+      "pinboard": "Pinboard",
+      "meal": "Meal",
+      "feelings": "Feelings",
+      "photos": "Photos"
+    },
+    "noEvents": "No upcoming events",
+    "noMessages": "No messages yet",
+    "tapToOpen": "Tap to open"
+  },
+  "topbar": {
+    "today": "Today"
+  }
+}
