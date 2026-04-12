@@ -87,7 +87,12 @@
     "fri": "Fri",
     "sat": "Sat",
     "sun": "Sun",
-    "saveFailed": "Failed to save event. Please try again."
+    "saveFailed": "Failed to save event. Please try again.",
+    "listView": "List",
+    "columnsView": "Members",
+    "familyColumn": "Family",
+    "editEvent": "Edit Event",
+    "deleteConfirm": "Delete this event?"
   },
   "landing": {
     "title": "FamilyDisplay",
@@ -99,6 +104,21 @@
     "createFamily": "Create a new Family",
     "invalidCode": "Invalid code. Please check and try again.",
     "unknownCode": "Family not found. Please check the code."
+  },
+  "settings": {
+    "title": "Settings",
+    "familyMembers": "Family Members",
+    "addMember": "Add Member",
+    "memberName": "Name",
+    "memberRole": "Role",
+    "memberColor": "Color",
+    "parent": "Parent",
+    "child": "Child",
+    "calendarConnectors": "Calendar Connectors",
+    "familyCode": "Family Code",
+    "familyCodeHint": "Share this code so others can join.",
+    "close": "Close",
+    "save": "Save"
   },
   "calendarSettings": {
     "title": "Calendar Accounts",

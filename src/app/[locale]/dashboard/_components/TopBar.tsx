@@ -2,9 +2,13 @@
 
 import { useEffect, useState } from "react";
 import { useLocale } from "next-intl";
-import { Sun, CloudSun } from "lucide-react";
+import { Sun, Settings } from "lucide-react";
 
-export function TopBar() {
+interface TopBarProps {
+  onSettingsClick?: () => void;
+}
+
+export function TopBar({ onSettingsClick }: TopBarProps) {
   const locale = useLocale();
   const [now, setNow] = useState(new Date());
 
@@ -35,8 +39,19 @@ export function TopBar() {
         <div className="text-lg font-bold">{dateStr}</div>
       </div>
 
-      <div data-testid="topbar-time" className="text-3xl font-extrabold tracking-tight tabular-nums" style={{ color: "var(--color-text)" }}>
-        {time}
+      <div className="flex items-center gap-4">
+        {onSettingsClick && (
+          <button
+            onClick={onSettingsClick}
+            className="glass-hover p-2 rounded-xl cursor-pointer transition-all"
+            style={{ color: "var(--color-text-muted)" }}
+          >
+            <Settings size={20} strokeWidth={1.5} />
+          </button>
+        )}
+        <div data-testid="topbar-time" className="text-3xl font-extrabold tracking-tight tabular-nums" style={{ color: "var(--color-text)" }}>
+          {time}
+        </div>
       </div>
     </div>
   );

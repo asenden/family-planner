@@ -87,7 +87,12 @@
     "fri": "Fr",
     "sat": "Sa",
     "sun": "So",
-    "saveFailed": "Termin konnte nicht gespeichert werden. Bitte versuche es erneut."
+    "saveFailed": "Termin konnte nicht gespeichert werden. Bitte versuche es erneut.",
+    "listView": "Liste",
+    "columnsView": "Mitglieder",
+    "familyColumn": "Familie",
+    "editEvent": "Termin bearbeiten",
+    "deleteConfirm": "Diesen Termin löschen?"
   },
   "landing": {
     "title": "FamilyDisplay",
@@ -99,6 +104,21 @@
     "createFamily": "Neue Familie erstellen",
     "invalidCode": "Ungültiger Code. Bitte überprüfe die Eingabe.",
     "unknownCode": "Familie nicht gefunden. Bitte überprüfe den Code."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "familyMembers": "Familienmitglieder",
+    "addMember": "Mitglied hinzufügen",
+    "memberName": "Name",
+    "memberRole": "Rolle",
+    "memberColor": "Farbe",
+    "parent": "Elternteil",
+    "child": "Kind",
+    "calendarConnectors": "Kalender-Verbindungen",
+    "familyCode": "Familien-Code",
+    "familyCodeHint": "Teile diesen Code, damit andere beitreten können.",
+    "close": "Schließen",
+    "save": "Speichern"
   },
   "calendarSettings": {
     "title": "Kalender-Konten",

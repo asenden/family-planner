@@ -1,9 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { db } from "@/lib/db";
-import { TopBar } from "./_components/TopBar";
-import { WidgetGrid } from "./_components/WidgetGrid";
-import { IdleScreensaver } from "./_components/IdleScreensaver";
+import { DashboardClient } from "./_components/DashboardClient";
 import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
 
 async function getFamilyData() {
@@ -51,6 +49,7 @@ async function getFamilyData() {
 
   return {
     familyId: family.id,
+    familyCode: family.inviteCode,
     members: family.members,
     events: expandedEvents,
   };
@@ -65,18 +64,11 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="grain min-h-screen p-5 flex flex-col gap-5 relative z-10">
-      <TopBar />
-      <div className="flex-1 flex items-center">
-        <div className="w-full">
-          <WidgetGrid
-            calendarEvents={familyData?.events || []}
-            familyMembers={familyData?.members || []}
-            familyId={familyData?.familyId}
-          />
-        </div>
-      </div>
-      <IdleScreensaver />
-    </div>
+    <DashboardClient
+      familyId={familyData.familyId}
+      familyCode={familyData.familyCode}
+      calendarEvents={familyData.events}
+      familyMembers={familyData.members}
+    />
   );
 }
