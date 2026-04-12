@@ -10,14 +10,22 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
   }
 
-  const inviteCode = generateInviteCode();
-  const family = await db.family.create({ data: { name: familyName, inviteCode } });
-  const member = await db.familyMember.create({
-    data: { name: memberName, email, password, color, role: "parent", familyId: family.id },
-  });
+  try {
+    const inviteCode = generateInviteCode();
+    const family = await db.family.create({ data: { name: familyName, inviteCode } });
+    const member = await db.familyMember.create({
+      data: { name: memberName, email, password, color, role: "parent", familyId: family.id },
+    });
 
-  return NextResponse.json({
-    family: { id: family.id, name: family.name, inviteCode: family.inviteCode },
-    member: { id: member.id, name: member.name, email: member.email, role: member.role },
-  }, { status: 201 });
+    return NextResponse.json({
+      family: { id: family.id, name: family.name, inviteCode: family.inviteCode },
+      member: { id: member.id, name: member.name, email: member.email, role: member.role },
+    }, { status: 201 });
+  } catch (error) {
+    console.error("Failed to create family:", error);
+    return NextResponse.json(
+      { error: "Database connection failed. Is PostgreSQL running?" },
+      { status: 500 }
+    );
+  }
 }

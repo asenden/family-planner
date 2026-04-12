@@ -3,11 +3,9 @@ services:
     build: .
     ports:
       - "3000:3000"
+    env_file: .env
     environment:
       - DATABASE_URL=postgresql://fd:fd@db:5432/familydisplay
-      - NEXTAUTH_URL=http://localhost:3000
-      - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
-      - CLAUDE_API_KEY=${CLAUDE_API_KEY}
     depends_on:
       db:
         condition: service_healthy

@@ -29,7 +29,14 @@ export default function SetupPage() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ familyName, memberName, email, password, color }),
     });
-    const data = await res.json();
+    let data;
+    try {
+      data = await res.json();
+    } catch {
+      setLoading(false);
+      setError("Server error — is the database running?");
+      return;
+    }
     setLoading(false);
     if (!res.ok) { setError(data.error || "Something went wrong"); return; }
     setInviteCode(data.family.inviteCode);

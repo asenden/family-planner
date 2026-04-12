@@ -19,12 +19,8 @@ export default async function LocaleLayout({
   const themeId = "playful";
 
   return (
-    <html lang={locale}>
-      <body>
-        <NextIntlClientProvider messages={messages}>
-          <ThemeProvider themeId={themeId}>{children}</ThemeProvider>
-        </NextIntlClientProvider>
-      </body>
-    </html>
+    <NextIntlClientProvider messages={messages}>
+      <ThemeProvider themeId={themeId}>{children}</ThemeProvider>
+    </NextIntlClientProvider>
   );
 }
