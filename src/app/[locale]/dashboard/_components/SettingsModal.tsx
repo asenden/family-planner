@@ -19,6 +19,7 @@ interface CalendarAccount {
   syncEnabled: boolean;
   lastSyncAt: string | null;
   calendarId: string | null;
+  calendarName: string | null;
 }
 
 interface GeoResult {
@@ -252,9 +253,10 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                         <span className="text-xl">{PROVIDER_ICONS[account.provider] ?? "📅"}</span>
                         <div>
                           <p className="font-semibold text-sm" style={{ color: "var(--color-text)" }}>
-                            {account.username}
+                            {account.calendarName || account.username}
                           </p>
                           <p className="text-xs" style={{ color: "var(--color-text-muted)" }}>
+                            {account.calendarName ? `${account.username} · ` : ""}
                             {account.lastSyncAt
                               ? tCal("lastSync", { time: new Date(account.lastSyncAt).toLocaleString() })
                               : tCal("neverSynced")}
@@ -287,8 +289,8 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                       error={calendarError}
                       onError={setCalendarError}
                       onCancel={() => { setShowAddCalendar(false); setCalendarError(null); }}
-                      onAdded={(account) => {
-                        setAccounts((prev) => [...prev, account]);
+                      onAdded={(newAccounts) => {
+                        setAccounts((prev) => [...prev, ...newAccounts]);
                         setShowAddCalendar(false);
                         setCalendarError(null);
                       }}
@@ -565,6 +567,13 @@ function AddMemberForm({
   );
 }
 
+type FormStep = "credentials" | "select-calendars";
+
+interface DiscoveredCalendar {
+  url: string;
+  displayName: string;
+}
+
 function AddCalendarForm({
   familyId,
   error,
@@ -576,23 +585,26 @@ function AddCalendarForm({
   error: string | null;
   onError: (msg: string) => void;
   onCancel: () => void;
-  onAdded: (account: CalendarAccount) => void;
+  onAdded: (accounts: CalendarAccount[]) => void;
 }) {
   const t = useTranslations("calendarSettings");
+  const [formStep, setFormStep] = useState<FormStep>("credentials");
   const [provider, setProvider] = useState("apple");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [serverUrl, setServerUrl] = useState("");
   const [loading, setLoading] = useState(false);
+  const [discoveredCalendars, setDiscoveredCalendars] = useState<DiscoveredCalendar[]>([]);
+  const [selectedCalendars, setSelectedCalendars] = useState<string[]>([]);
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function handleConnect(e: React.FormEvent) {
     e.preventDefault();
     if (!username || !password) return;
     setLoading(true);
     onError("");
 
     try {
-      const res = await fetch(`/api/families/${familyId}/calendar-accounts`, {
+      const res = await fetch(`/api/families/${familyId}/calendar-accounts/discover`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ provider, username, password, serverUrl: serverUrl || undefined }),
@@ -602,7 +614,11 @@ function AddCalendarForm({
       if (!res.ok) {
         onError((data as { error?: string }).error || t("connectionFailed"));
       } else {
-        onAdded((data as { account: CalendarAccount }).account);
+        const calendars = (data as { calendars: DiscoveredCalendar[] }).calendars;
+        setDiscoveredCalendars(calendars);
+        // Pre-select all calendars
+        setSelectedCalendars(calendars.map((c) => c.url));
+        setFormStep("select-calendars");
       }
     } catch {
       onError(t("connectionFailed"));
@@ -611,9 +627,128 @@ function AddCalendarForm({
     }
   }
 
+  function toggleCalendar(url: string) {
+    setSelectedCalendars((prev) =>
+      prev.includes(url) ? prev.filter((u) => u !== url) : [...prev, url]
+    );
+  }
+
+  async function handleSave() {
+    if (selectedCalendars.length === 0) return;
+    setLoading(true);
+    onError("");
+
+    try {
+      const created: CalendarAccount[] = [];
+      for (const calUrl of selectedCalendars) {
+        const cal = discoveredCalendars.find((c) => c.url === calUrl);
+        const res = await fetch(`/api/families/${familyId}/calendar-accounts`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            provider,
+            username,
+            password,
+            serverUrl: serverUrl || undefined,
+            calendarId: calUrl,
+            calendarName: cal?.displayName ?? null,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          created.push((data as { account: CalendarAccount }).account);
+        }
+      }
+      if (created.length > 0) {
+        onAdded(created);
+      } else {
+        onError(t("connectionFailed"));
+      }
+    } catch {
+      onError(t("connectionFailed"));
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  if (formStep === "select-calendars") {
+    return (
+      <div
+        className="p-4 mt-2"
+        style={{
+          backgroundColor: "rgba(255,255,255,0.05)",
+          borderRadius: "calc(var(--border-radius) / 2)",
+          border: "1px solid rgba(255,255,255,0.1)",
+        }}
+      >
+        <h3 className="text-sm font-bold mb-3" style={{ color: "var(--color-text)" }}>
+          {t("selectCalendars")}
+        </h3>
+
+        {error && (
+          <p className="mb-3 text-xs font-semibold" style={{ color: "#FF6B6B" }}>{error}</p>
+        )}
+
+        <div className="space-y-2 mb-4">
+          {discoveredCalendars.map((cal) => {
+            const isChecked = selectedCalendars.includes(cal.url);
+            return (
+              <label
+                key={cal.url}
+                className="flex items-center gap-3 p-2 cursor-pointer transition-all"
+                style={{
+                  backgroundColor: isChecked ? "rgba(255,255,255,0.08)" : "rgba(255,255,255,0.03)",
+                  borderRadius: "calc(var(--border-radius) / 2)",
+                  border: `1px solid ${isChecked ? "rgba(255,255,255,0.15)" : "rgba(255,255,255,0.06)"}`,
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggleCalendar(cal.url)}
+                  className="w-4 h-4 cursor-pointer accent-[var(--color-primary)]"
+                />
+                <span className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+                  {cal.displayName}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+
+        <div className="flex gap-2">
+          <button
+            type="button"
+            onClick={() => { setFormStep("credentials"); onError(""); }}
+            className="flex-1 py-2 text-sm font-semibold cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "rgba(255,255,255,0.05)",
+              color: "var(--color-text)",
+            }}
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={handleSave}
+            disabled={selectedCalendars.length === 0 || loading}
+            className="flex-1 py-2 text-sm text-white font-semibold disabled:opacity-50 cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "var(--color-primary)",
+            }}
+          >
+            {loading ? t("saving") : t("connect")}
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <form
-      onSubmit={handleSubmit}
+      onSubmit={handleConnect}
       className="p-4 mt-2"
       style={{
         backgroundColor: "rgba(255,255,255,0.05)",
@@ -720,7 +855,7 @@ function AddCalendarForm({
             backgroundColor: "var(--color-primary)",
           }}
         >
-          {loading ? "..." : t("connect")}
+          {loading ? t("connecting") : t("connect")}
         </button>
       </div>
     </form>

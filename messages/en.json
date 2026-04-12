@@ -148,6 +148,9 @@
     "neverSynced": "Never synced",
     "remove": "Remove",
     "syncNow": "Sync Now",
-    "connectionFailed": "Connection failed. Check your credentials."
+    "connectionFailed": "Connection failed. Check your credentials.",
+    "selectCalendars": "Select calendars to sync",
+    "connecting": "Connecting...",
+    "saving": "Saving..."
   }
 }

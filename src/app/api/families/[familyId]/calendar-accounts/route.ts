@@ -20,6 +20,7 @@ export async function GET(
       syncEnabled: true,
       lastSyncAt: true,
       calendarId: true,
+      calendarName: true,
     },
     orderBy: { createdAt: "asc" },
   });
@@ -33,28 +34,33 @@ export async function POST(
 ) {
   const { familyId } = await params;
   const body = await request.json();
-  const { provider, username, password, serverUrl, memberId } = body;
+  const { provider, username, password, serverUrl, memberId, calendarId, calendarName } = body;
 
   if (!provider || !username || !password) {
     return NextResponse.json({ error: "Missing required fields: provider, username, password" }, { status: 400 });
   }
 
-  let calendars;
-  try {
-    calendars = await fetchCalendars({
-      provider: provider as CalendarSource,
-      serverUrl: serverUrl ?? "",
-      username,
-      password,
-    });
-  } catch (error) {
-    console.error("CalDAV connection failed:", error);
-    return NextResponse.json({ error: "Connection failed. Check your credentials." }, { status: 400 });
+  // If a specific calendarId is provided (from the 2-step discovery flow), use it directly.
+  // Otherwise fall back to discovering and using the first calendar.
+  let resolvedCalendarId: string | null = calendarId ?? null;
+
+  if (!resolvedCalendarId) {
+    let calendars;
+    try {
+      calendars = await fetchCalendars({
+        provider: provider as CalendarSource,
+        serverUrl: serverUrl ?? "",
+        username,
+        password,
+      });
+    } catch (error) {
+      console.error("CalDAV connection failed:", error);
+      return NextResponse.json({ error: "Connection failed. Check your credentials." }, { status: 400 });
+    }
+    resolvedCalendarId = calendars[0]?.url ?? null;
   }
 
-  const firstCalendarId = calendars[0]?.url ?? null;
-
-  // If no memberId provided, use the first parent member of the family
+  // If no memberId provided, use the first member of the family
   let resolvedMemberId = memberId;
   if (!resolvedMemberId) {
     const firstMember = await db.familyMember.findFirst({
@@ -75,7 +81,8 @@ export async function POST(
       username,
       password,
       serverUrl: serverUrl ?? "",
-      calendarId: firstCalendarId,
+      calendarId: resolvedCalendarId,
+      calendarName: calendarName ?? null,
       syncEnabled: true,
       familyId,
       memberId: resolvedMemberId,
@@ -88,6 +95,7 @@ export async function POST(
       syncEnabled: true,
       lastSyncAt: true,
       calendarId: true,
+      calendarName: true,
     },
   });
 

@@ -94,12 +94,13 @@ enum CalendarSource {
 }
 
 model CalendarAccount {
-  id         String         @id @default(cuid())
-  provider   CalendarSource
-  serverUrl  String
-  username   String
-  password   String
-  calendarId String?
+  id           String         @id @default(cuid())
+  provider     CalendarSource
+  serverUrl    String
+  username     String
+  password     String
+  calendarId   String?
+  calendarName String?
 
   syncEnabled Boolean  @default(true)
   lastSyncAt  DateTime?
@@ -112,7 +113,7 @@ model CalendarAccount {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  @@unique([memberId, serverUrl, username])
+  @@unique([memberId, serverUrl, username, calendarId])
 }
 
 model Routine {

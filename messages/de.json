@@ -148,6 +148,9 @@
     "neverSynced": "Noch nie synchronisiert",
     "remove": "Entfernen",
     "syncNow": "Jetzt synchronisieren",
-    "connectionFailed": "Verbindung fehlgeschlagen. Überprüfe deine Zugangsdaten."
+    "connectionFailed": "Verbindung fehlgeschlagen. Überprüfe deine Zugangsdaten.",
+    "selectCalendars": "Kalender zum Synchronisieren auswählen",
+    "connecting": "Verbinde...",
+    "saving": "Speichere..."
   }
 }
