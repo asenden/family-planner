@@ -50,5 +50,46 @@
   },
   "topbar": {
     "today": "Heute"
+  },
+  "calendar": {
+    "title": "Kalender",
+    "today": "Heute",
+    "tomorrow": "Morgen",
+    "thisWeek": "Diese Woche",
+    "noEvents": "Keine anstehenden Termine",
+    "allDay": "Ganztägig",
+    "addEvent": "Termin hinzufügen",
+    "editEvent": "Termin bearbeiten",
+    "deleteEvent": "Termin löschen",
+    "eventTitle": "Titel",
+    "eventDescription": "Beschreibung",
+    "eventStart": "Beginn",
+    "eventEnd": "Ende",
+    "eventAllDay": "Ganztägig",
+    "eventAssignTo": "Zuweisen an",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "confirmDelete": "Diesen Termin löschen?",
+    "dayView": "Tag",
+    "weekView": "Woche"
+  },
+  "calendarSettings": {
+    "title": "Kalender-Konten",
+    "addAccount": "Kalender hinzufügen",
+    "provider": "Anbieter",
+    "providerApple": "iCloud",
+    "providerGoogle": "Google",
+    "providerOther": "Andere (CalDAV)",
+    "username": "E-Mail / Benutzername",
+    "password": "App-spezifisches Passwort",
+    "passwordHint": "Für iCloud: Einstellungen → Apple-ID → App-spezifische Passwörter",
+    "serverUrl": "CalDAV-Server-URL",
+    "connect": "Verbinden",
+    "connected": "Verbunden",
+    "lastSync": "Letzte Synchronisierung: {time}",
+    "neverSynced": "Noch nie synchronisiert",
+    "remove": "Entfernen",
+    "syncNow": "Jetzt synchronisieren",
+    "connectionFailed": "Verbindung fehlgeschlagen. Überprüfe deine Zugangsdaten."
   }
 }

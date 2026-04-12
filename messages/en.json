@@ -50,5 +50,46 @@
   },
   "topbar": {
     "today": "Today"
+  },
+  "calendar": {
+    "title": "Calendar",
+    "today": "Today",
+    "tomorrow": "Tomorrow",
+    "thisWeek": "This Week",
+    "noEvents": "No upcoming events",
+    "allDay": "All day",
+    "addEvent": "Add Event",
+    "editEvent": "Edit Event",
+    "deleteEvent": "Delete Event",
+    "eventTitle": "Title",
+    "eventDescription": "Description",
+    "eventStart": "Start",
+    "eventEnd": "End",
+    "eventAllDay": "All day",
+    "eventAssignTo": "Assign to",
+    "save": "Save",
+    "cancel": "Cancel",
+    "confirmDelete": "Delete this event?",
+    "dayView": "Day",
+    "weekView": "Week"
+  },
+  "calendarSettings": {
+    "title": "Calendar Accounts",
+    "addAccount": "Add Calendar",
+    "provider": "Provider",
+    "providerApple": "iCloud",
+    "providerGoogle": "Google",
+    "providerOther": "Other (CalDAV)",
+    "username": "Email / Username",
+    "password": "App-Specific Password",
+    "passwordHint": "For iCloud: Settings → Apple ID → App-Specific Passwords",
+    "serverUrl": "CalDAV Server URL",
+    "connect": "Connect",
+    "connected": "Connected",
+    "lastSync": "Last sync: {time}",
+    "neverSynced": "Never synced",
+    "remove": "Remove",
+    "syncNow": "Sync Now",
+    "connectionFailed": "Connection failed. Check your credentials."
   }
 }
