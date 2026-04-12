@@ -1,0 +1,263 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Family {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique @db.VarChar(6)
+  theme      String   @default("playful")
+  locale     String   @default("de")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  members          FamilyMember[]
+  calendarEvents   CalendarEvent[]
+  routines         Routine[]
+  rewards          Reward[]
+  meals            Meal[]
+  groceryLists     GroceryList[]
+  pinboardMessages PinboardMessage[]
+  photos           Photo[]
+}
+
+model FamilyMember {
+  id       String  @id @default(cuid())
+  name     String
+  avatar   String?
+  color    String
+  pin      String? @db.VarChar(4)
+  role     Role
+  email    String? @unique
+  password String?
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  calendarEvents     CalendarEvent[]    @relation("EventAssignees")
+  routines           Routine[]
+  routineCompletions RoutineCompletion[]
+  rewardRedemptions  RewardRedemption[]
+  feelingCheckins    FeelingCheckin[]
+  pinboardMessages   PinboardMessage[]
+  photos             Photo[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum Role {
+  parent
+  child
+}
+
+model CalendarEvent {
+  id           String         @id @default(cuid())
+  title        String
+  description  String?
+  start        DateTime
+  end          DateTime
+  allDay       Boolean        @default(false)
+  externalId   String?
+  source       CalendarSource @default(local)
+  lastSyncedAt DateTime?
+
+  familyId   String
+  family     Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  assignedTo FamilyMember[] @relation("EventAssignees")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([familyId, start])
+  @@index([externalId])
+}
+
+enum CalendarSource {
+  local
+  google
+  outlook
+  apple
+}
+
+model Routine {
+  id         String          @id @default(cuid())
+  title      String
+  icon       String
+  schedule   RoutineSchedule
+  customDays Int[]
+
+  familyId   String
+  family     Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  assignedTo String
+  member     FamilyMember @relation(fields: [assignedTo], references: [id], onDelete: Cascade)
+  tasks      RoutineTask[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+enum RoutineSchedule {
+  daily
+  weekdays
+  custom
+}
+
+model RoutineTask {
+  id     String @id @default(cuid())
+  title  String
+  icon   String
+  order  Int
+  points Int    @default(1)
+
+  routineId   String
+  routine     Routine             @relation(fields: [routineId], references: [id], onDelete: Cascade)
+  completions RoutineCompletion[]
+}
+
+model RoutineCompletion {
+  id          String   @id @default(cuid())
+  date        DateTime @db.Date
+  completedAt DateTime @default(now())
+
+  taskId   String
+  task     RoutineTask  @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  memberId String
+  member   FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@unique([taskId, memberId, date])
+}
+
+model Reward {
+  id    String @id @default(cuid())
+  title String
+  icon  String
+  cost  Int
+
+  familyId    String
+  family      Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  redemptions RewardRedemption[]
+
+  createdAt DateTime @default(now())
+}
+
+model RewardRedemption {
+  id         String   @id @default(cuid())
+  redeemedAt DateTime @default(now())
+
+  rewardId String
+  reward   Reward       @relation(fields: [rewardId], references: [id], onDelete: Cascade)
+  memberId String
+  member   FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+}
+
+model Meal {
+  id          String     @id @default(cuid())
+  date        DateTime   @db.Date
+  type        MealType
+  title       String
+  recipe      Json?
+  servings    Int        @default(4)
+  generatedBy MealSource @default(manual)
+
+  familyId String
+  family   Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  groceryItems GroceryItem[]
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([familyId, date, type])
+}
+
+enum MealType {
+  breakfast
+  lunch
+  dinner
+}
+
+enum MealSource {
+  ai
+  manual
+}
+
+model GroceryList {
+  id     String   @id @default(cuid())
+  weekOf DateTime @db.Date
+
+  familyId String
+  family   Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  items    GroceryItem[]
+
+  createdAt DateTime @default(now())
+
+  @@unique([familyId, weekOf])
+}
+
+model GroceryItem {
+  id       String  @id @default(cuid())
+  name     String
+  quantity Float?
+  unit     String?
+  checked  Boolean @default(false)
+
+  groceryListId String
+  groceryList   GroceryList @relation(fields: [groceryListId], references: [id], onDelete: Cascade)
+  mealId        String?
+  meal          Meal?       @relation(fields: [mealId], references: [id], onDelete: SetNull)
+}
+
+model FeelingCheckin {
+  id      String   @id @default(cuid())
+  date    DateTime @db.Date
+  feeling Feeling
+  note    String?
+
+  memberId String
+  member   FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  @@unique([memberId, date])
+}
+
+enum Feeling {
+  happy
+  neutral
+  sad
+  angry
+  excited
+}
+
+model PinboardMessage {
+  id        String    @id @default(cuid())
+  content   String
+  expiresAt DateTime?
+
+  authorId String
+  author   FamilyMember @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  familyId String
+  family   Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
+
+model Photo {
+  id            String  @id @default(cuid())
+  filePath      String
+  caption       String?
+  showInGallery Boolean @default(true)
+
+  uploadedBy String
+  uploader   FamilyMember @relation(fields: [uploadedBy], references: [id], onDelete: Cascade)
+  familyId   String
+  family     Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+}
