@@ -1,6 +1,6 @@
 import type { Theme } from "./types";
 export const playful: Theme = {
   name: "Playful",
-  colors: { background: "#FFF5E6", surface: "#FFFFFF", primary: "#FF6B6B", secondary: "#4ECDC4", accent: "#FFE66D", text: "#2D3436", textMuted: "#636E72" },
-  borderRadius: "16px", fontFamily: "'Nunito', sans-serif", iconStyle: "emoji",
+  colors: { background: "#1a1625", surface: "rgba(255,255,255,0.08)", primary: "#a78bfa", secondary: "#67e8f9", accent: "#fbbf24", text: "#f1f0f5", textMuted: "rgba(241,240,245,0.5)" },
+  borderRadius: "20px", fontFamily: "'Plus Jakarta Sans', sans-serif", iconStyle: "emoji",
 };

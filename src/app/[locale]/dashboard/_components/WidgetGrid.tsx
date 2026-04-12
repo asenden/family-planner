@@ -47,21 +47,21 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
     <div className="grid grid-cols-3 gap-4">
       <CalendarWidget events={calendarEvents} onTap={() => setFullView("calendar")} />
 
-      <WidgetCard title={t("widgets.routines")} icon="✅" color="#FF922B">
+      <WidgetCard title={t("widgets.routines")} icon="✅" color="#f59e0b" delay={100}>
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.pinboard")} icon="📌" color="#6BCB77">
+      <WidgetCard title={t("widgets.pinboard")} icon="📌" color="#34d399" delay={150}>
         <p style={{ color: "var(--color-text-muted)" }}>{t("noMessages")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.meal")} icon="🍽" color="#4D96FF">
+      <WidgetCard title={t("widgets.meal")} icon="🍽" color="#60a5fa" delay={200}>
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
-      <WidgetCard title={t("widgets.feelings")} icon="💭" color="#E599F7">
+      <WidgetCard title={t("widgets.feelings")} icon="💭" color="#c084fc" delay={250}>
         <div className="flex gap-3 text-2xl">
           <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>🤩</span>
         </div>
       </WidgetCard>
-      <WidgetCard title={t("widgets.photos")} icon="🖼" color="#FFD93D">
+      <WidgetCard title={t("widgets.photos")} icon="🖼" color="#fbbf24" delay={300}>
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
     </div>

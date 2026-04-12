@@ -65,7 +65,7 @@ export default async function DashboardPage() {
   }
 
   return (
-    <div className="min-h-screen p-4 flex flex-col gap-4" style={{ backgroundColor: "var(--color-background)" }}>
+    <div className="grain min-h-screen p-5 flex flex-col gap-5 relative z-10">
       <TopBar />
       <div className="flex-1 flex items-center">
         <div className="w-full">

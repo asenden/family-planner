@@ -1,20 +1,122 @@
-@import url("https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800&family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 :root {
-  --color-background: #fff5e6;
-  --color-surface: #ffffff;
-  --color-primary: #ff6b6b;
-  --color-secondary: #4ecdc4;
-  --color-accent: #ffe66d;
-  --color-text: #2d3436;
-  --color-text-muted: #636e72;
-  --border-radius: 16px;
-  --font-family: "Nunito", sans-serif;
+  --color-background: #1a1625;
+  --color-background-gradient: linear-gradient(135deg, #1a1625 0%, #2d1f3d 40%, #1e2a4a 100%);
+  --color-surface: rgba(255, 255, 255, 0.08);
+  --color-surface-hover: rgba(255, 255, 255, 0.12);
+  --color-surface-border: rgba(255, 255, 255, 0.06);
+  --color-primary: #a78bfa;
+  --color-primary-glow: rgba(167, 139, 250, 0.3);
+  --color-secondary: #67e8f9;
+  --color-accent: #fbbf24;
+  --color-text: #f1f0f5;
+  --color-text-muted: rgba(241, 240, 245, 0.5);
+  --border-radius: 20px;
+  --font-family: "Plus Jakarta Sans", sans-serif;
+  --glass-blur: blur(24px);
+  --glass-border: 1px solid rgba(255, 255, 255, 0.08);
+  --shadow-widget: 0 8px 32px rgba(0, 0, 0, 0.3), 0 0 0 1px rgba(255, 255, 255, 0.05);
+  --shadow-topbar: 0 4px 24px rgba(0, 0, 0, 0.2);
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
 }
 
 body {
   font-family: var(--font-family);
-  background-color: var(--color-background);
+  background: var(--color-background-gradient);
+  background-attachment: fixed;
   color: var(--color-text);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ambient background orbs */
+body::before,
+body::after {
+  content: "";
+  position: fixed;
+  border-radius: 50%;
+  filter: blur(100px);
+  opacity: 0.15;
+  pointer-events: none;
+  z-index: 0;
+}
+
+body::before {
+  width: 600px;
+  height: 600px;
+  background: #a78bfa;
+  top: -200px;
+  right: -100px;
+  animation: float-orb 20s ease-in-out infinite;
+}
+
+body::after {
+  width: 500px;
+  height: 500px;
+  background: #67e8f9;
+  bottom: -150px;
+  left: -100px;
+  animation: float-orb 25s ease-in-out infinite reverse;
+}
+
+@keyframes float-orb {
+  0%, 100% { transform: translate(0, 0) scale(1); }
+  33% { transform: translate(30px, -40px) scale(1.05); }
+  66% { transform: translate(-20px, 20px) scale(0.95); }
+}
+
+/* Glass card base */
+.glass {
+  background: var(--color-surface);
+  backdrop-filter: var(--glass-blur);
+  -webkit-backdrop-filter: var(--glass-blur);
+  border: var(--glass-border);
+  box-shadow: var(--shadow-widget);
+}
+
+.glass-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-hover:hover {
+  background: var(--color-surface-hover);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-widget), 0 0 40px rgba(167, 139, 250, 0.08);
+}
+
+.glass-hover:active {
+  transform: scale(0.98) translateY(0);
+  transition-duration: 0.1s;
+}
+
+/* Stagger animation for widgets */
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(16px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-slide-up {
+  animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+/* Subtle grain texture overlay */
+.grain::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  opacity: 0.03;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
 }
