@@ -26,9 +26,10 @@ export function CalendarWidget({ events, maxEvents = MAX_EVENTS_DEFAULT, onTap }
   const t = useTranslations("calendar");
   const locale = useLocale();
 
-  const now = new Date();
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
   const upcoming = events
-    .filter((e) => new Date(e.start) >= now || e.allDay)
+    .filter((e) => new Date(e.start) >= todayStart)
     .sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
     .slice(0, maxEvents);
 
