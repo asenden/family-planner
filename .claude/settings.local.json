@@ -18,7 +18,8 @@
       "Bash(git config:*)",
       "Bash(git:*)",
       "Bash(npx prisma:*)",
-      "Skill(commit-commands:commit)"
+      "Skill(commit-commands:commit)",
+      "Bash(rsync -avz -e \"ssh -i ~/.ssh/id_ed25519\" \"/Users/asenden/Projekte/FamilyDisplay/src/app/[locale]/dashboard/_components/PinboardWidget.tsx\" \"root@178.104.37.21:/opt/familydisplay/src/app/[locale]/dashboard/_components/PinboardWidget.tsx\")"
     ]
   }
 }

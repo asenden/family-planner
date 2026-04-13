@@ -63,39 +63,39 @@ export function PinboardWidget({ messages, onTap }: PinboardWidgetProps) {
           {t("empty")}
         </p>
       ) : (
-        <div className="relative h-28">
-          {preview.map((msg, i) => {
+        <div className="grid grid-cols-2 gap-2">
+          {preview.map((msg) => {
             const rotation = getRotation(msg.id);
-            const offsetX = i * 18;
-            const offsetY = i * 6;
             return (
               <div
                 key={msg.id}
-                className="absolute"
+                className="postit-note"
                 style={{
-                  left: `${offsetX}px`,
-                  top: `${offsetY}px`,
                   transform: `rotate(${rotation}deg)`,
-                  zIndex: preview.length - i,
-                  width: "90px",
-                  minHeight: "72px",
+                  ["--postit-rotation" as string]: `${rotation}deg`,
+                  ["--postit-hover-rotation" as string]: `${rotation * 0.5}deg`,
                   backgroundColor: msg.color,
                   borderRadius: "2px",
                   padding: "8px",
+                  minHeight: "56px",
                   boxShadow: "2px 3px 8px rgba(0,0,0,0.35), 0 0 1px rgba(0,0,0,0.15)",
-                  transition: "transform 0.2s, box-shadow 0.2s",
                 }}
               >
-                <div className="text-xs mb-0.5">📌</div>
                 <p
-                  className="text-xs leading-tight line-clamp-2"
+                  className="leading-tight line-clamp-2"
                   style={{
                     fontFamily: "'Caveat', cursive",
-                    fontSize: "13px",
+                    fontSize: "14px",
                     color: "#1a1a1a",
                   }}
                 >
                   {msg.content}
+                </p>
+                <p
+                  className="mt-1 text-right"
+                  style={{ fontSize: "10px", color: "#1a1a1a", opacity: 0.5 }}
+                >
+                  —{msg.author.name}
                 </p>
               </div>
             );
