@@ -182,6 +182,8 @@
     "deleteRoutine": "Delete Routine",
     "addTask": "Add Task",
     "editTask": "Edit Task",
+    "tasksFor": "Tasks for {name}",
+    "defaultRoutine": "Tasks",
     "deleteTask": "Delete Task",
     "addReward": "Add Reward",
     "editReward": "Edit Reward",

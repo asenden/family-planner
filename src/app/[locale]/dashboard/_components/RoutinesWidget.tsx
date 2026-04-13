@@ -1,9 +1,10 @@
 "use client";
 
 import { useTranslations } from "next-intl";
-import { ListChecks, Star } from "lucide-react";
+import { ListChecks, Star, CheckCircle2, Circle } from "lucide-react";
 
 const WIDGET_COLOR = "#f59e0b";
+const MAX_TASKS_SHOWN = 5;
 
 interface RoutineTask {
   id: string;
@@ -23,25 +24,16 @@ interface Routine {
   tasks: RoutineTask[];
 }
 
-interface ChildProgress {
-  memberId: string;
-  name: string;
-  color: string;
-  totalTasksToday: number;
-  doneTasksToday: number;
-  points: number;
-}
-
 interface RoutinesWidgetProps {
   routines: Routine[];
-  completedTaskIds: string[];   // task IDs completed today (for the current user)
+  completedTaskIds: string[];
   pointsMap: Record<string, number>;
   members: { id: string; name: string; color: string; role: string }[];
   onTap: () => void;
 }
 
 function isScheduledToday(routine: Routine): boolean {
-  const today = new Date().getDay(); // 0=Sun … 6=Sat
+  const today = new Date().getDay();
   if (routine.schedule === "daily") return true;
   if (routine.schedule === "weekdays") return today >= 1 && today <= 5;
   if (routine.schedule === "custom") return routine.customDays.includes(today);
@@ -59,24 +51,21 @@ export function RoutinesWidget({
 
   const children = members.filter((m) => m.role === "child");
 
-  const childProgress: ChildProgress[] = children.map((child) => {
-    const todayRoutines = routines.filter(
-      (r) => r.assignedTo === child.id && isScheduledToday(r)
-    );
-    const allTasks = todayRoutines.flatMap((r) => r.tasks);
-    const doneTasks = allTasks.filter((t) => completedTaskIds.includes(t.id));
-
+  // Collect all today's tasks per child (flat, from all routines)
+  const childData = children.map((child) => {
+    const todayTasks = routines
+      .filter((r) => r.assignedTo === child.id && isScheduledToday(r))
+      .flatMap((r) => r.tasks);
     return {
-      memberId: child.id,
+      id: child.id,
       name: child.name,
       color: child.color,
-      totalTasksToday: allTasks.length,
-      doneTasksToday: doneTasks.length,
+      tasks: todayTasks,
       points: pointsMap[child.id] ?? 0,
     };
   });
 
-  const hasAnyTasks = childProgress.some((c) => c.totalTasksToday > 0);
+  const hasAnyTasks = childData.some((c) => c.tasks.length > 0);
 
   return (
     <button
@@ -102,25 +91,23 @@ export function RoutinesWidget({
         </span>
       </div>
 
-      {/* Per-child rows */}
-      <div className="space-y-3">
+      {/* Per-child task lists */}
+      <div className="space-y-4">
         {!hasAnyTasks ? (
           <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
             {children.length === 0 ? t("noRoutines") : t("noTasksToday")}
           </p>
         ) : (
-          childProgress
-            .filter((c) => c.totalTasksToday > 0)
+          childData
+            .filter((c) => c.tasks.length > 0)
             .map((child) => {
-              const pct = child.totalTasksToday > 0
-                ? Math.round((child.doneTasksToday / child.totalTasksToday) * 100)
-                : 0;
-              const allDone = child.doneTasksToday === child.totalTasksToday;
+              const shown = child.tasks.slice(0, MAX_TASKS_SHOWN);
+              const remaining = child.tasks.length - shown.length;
 
               return (
-                <div key={child.memberId} className="space-y-1.5">
-                  {/* Name row */}
-                  <div className="flex items-center justify-between">
+                <div key={child.id} className="space-y-1.5">
+                  {/* Child name + points */}
+                  <div className="flex items-center justify-between mb-1">
                     <div className="flex items-center gap-2">
                       <div
                         className="w-2 h-2 rounded-full shrink-0"
@@ -138,29 +125,47 @@ export function RoutinesWidget({
                     </div>
                   </div>
 
-                  {/* Progress bar */}
-                  <div
-                    className="h-1.5 rounded-full overflow-hidden"
-                    style={{ backgroundColor: "rgba(255,255,255,0.06)" }}
-                  >
-                    <div
-                      className="h-full rounded-full transition-all duration-500"
-                      style={{
-                        width: `${pct}%`,
-                        background: allDone
-                          ? `linear-gradient(90deg, ${child.color}, #fde68a)`
-                          : `linear-gradient(90deg, ${WIDGET_COLOR}cc, ${WIDGET_COLOR}66)`,
-                        boxShadow: allDone ? `0 0 8px ${child.color}60` : undefined,
-                      }}
-                    />
+                  {/* Mini task checklist */}
+                  <div className="space-y-1">
+                    {shown.map((task) => {
+                      const done = completedTaskIds.includes(task.id);
+                      return (
+                        <div
+                          key={task.id}
+                          className="flex items-center gap-2 px-1"
+                        >
+                          {done ? (
+                            <CheckCircle2
+                              size={13}
+                              strokeWidth={2}
+                              style={{ color: "var(--color-primary)", flexShrink: 0 }}
+                            />
+                          ) : (
+                            <Circle
+                              size={13}
+                              strokeWidth={1.5}
+                              style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+                            />
+                          )}
+                          <span className="text-[11px] leading-none" aria-hidden="true">{task.icon}</span>
+                          <span
+                            className="text-[12px] flex-1 truncate"
+                            style={{
+                              color: done ? "var(--color-text-muted)" : "var(--color-text)",
+                              textDecoration: done ? "line-through" : "none",
+                            }}
+                          >
+                            {task.title}
+                          </span>
+                        </div>
+                      );
+                    })}
+                    {remaining > 0 && (
+                      <p className="text-[10px] pl-5" style={{ color: "var(--color-text-muted)" }}>
+                        +{remaining} more
+                      </p>
+                    )}
                   </div>
-
-                  {/* Count label */}
-                  <p className="text-[10px]" style={{ color: "var(--color-text-muted)" }}>
-                    {allDone
-                      ? t("tasksComplete")
-                      : t("taskProgress", { done: child.doneTasksToday, total: child.totalTasksToday })}
-                  </p>
                 </div>
               );
             })

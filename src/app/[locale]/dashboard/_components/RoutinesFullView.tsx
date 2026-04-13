@@ -50,14 +50,6 @@ interface RoutinesFullViewProps {
 
 type Tab = "tasks" | "goals";
 
-function isScheduledToday(routine: Routine): boolean {
-  const today = new Date().getDay();
-  if (routine.schedule === "daily") return true;
-  if (routine.schedule === "weekdays") return today >= 1 && today <= 5;
-  if (routine.schedule === "custom") return routine.customDays.includes(today);
-  return false;
-}
-
 function todayDateStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -80,7 +72,7 @@ export function RoutinesFullView({
   const [pointsMap, setPointsMap] = useState(initialPointsMap);
   const [pendingTasks, setPendingTasks] = useState<Set<string>>(new Set());
   const [redeemConfirm, setRedeemConfirm] = useState<Reward | null>(null);
-  const [redeemingFor, setRedeemingFor] = useState<string | null>(null); // memberId
+  const [redeemingFor, setRedeemingFor] = useState<string | null>(null);
   const [flashTaskId, setFlashTaskId] = useState<string | null>(null);
 
   const children = members.filter((m) => m.role === "child");
@@ -214,9 +206,10 @@ export function RoutinesFullView({
               </div>
             )}
             {children.map((child) => {
-              const todayRoutines = routines.filter(
-                (r) => r.assignedTo === child.id && isScheduledToday(r)
-              );
+              // Collect ALL tasks for this child across all routines (flat)
+              const allTasks = routines
+                .filter((r) => r.assignedTo === child.id)
+                .flatMap((r) => r.tasks);
               const childPoints = pointsMap[child.id] ?? 0;
 
               return (
@@ -240,7 +233,7 @@ export function RoutinesFullView({
                     </div>
                   </div>
 
-                  {todayRoutines.length === 0 ? (
+                  {allTasks.length === 0 ? (
                     <div
                       className="glass p-4"
                       style={{ borderRadius: "var(--border-radius)" }}
@@ -250,74 +243,60 @@ export function RoutinesFullView({
                       </p>
                     </div>
                   ) : (
-                    todayRoutines.map((routine) => (
-                      <div
-                        key={routine.id}
-                        className="glass p-4 space-y-2"
-                        style={{ borderRadius: "var(--border-radius)" }}
-                      >
-                        {/* Routine title */}
-                        <p
-                          className="text-[11px] font-bold uppercase tracking-[0.12em]"
-                          style={{ color: "var(--color-secondary)" }}
-                        >
-                          {routine.icon} {routine.title}
-                        </p>
+                    <div
+                      className="glass p-4 space-y-1"
+                      style={{ borderRadius: "var(--border-radius)" }}
+                    >
+                      {allTasks.map((task) => {
+                        const done = completedIds.has(task.id);
+                        const pending = pendingTasks.has(task.id);
+                        const flashing = flashTaskId === task.id;
 
-                        {/* Tasks */}
-                        <div className="space-y-1">
-                          {routine.tasks.map((task) => {
-                            const done = completedIds.has(task.id);
-                            const pending = pendingTasks.has(task.id);
-                            const flashing = flashTaskId === task.id;
-
-                            return (
-                              <button
-                                key={task.id}
-                                disabled={pending}
-                                onClick={() => toggleTask(task.id, child.id, task)}
-                                className="flex items-center gap-3 w-full text-left px-2 py-2.5 rounded-xl transition-all cursor-pointer"
-                                style={{
-                                  backgroundColor: done ? "rgba(167,139,250,0.08)" : "rgba(255,255,255,0.03)",
-                                  opacity: pending ? 0.6 : 1,
-                                  animation: flashing ? "task-complete 0.5s ease" : undefined,
-                                }}
-                              >
-                                {done ? (
-                                  <CheckSquare
-                                    size={20}
-                                    strokeWidth={1.5}
-                                    style={{ color: "var(--color-primary)", flexShrink: 0 }}
-                                  />
-                                ) : (
-                                  <Square
-                                    size={20}
-                                    strokeWidth={1.5}
-                                    style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
-                                  />
-                                )}
-                                <span className="text-lg leading-none" aria-hidden="true">{task.icon}</span>
-                                <span
-                                  className="flex-1 text-sm font-medium"
-                                  style={{
-                                    color: done ? "var(--color-text-muted)" : "var(--color-text)",
-                                    textDecoration: done ? "line-through" : "none",
-                                  }}
-                                >
-                                  {task.title}
-                                </span>
-                                <span
-                                  className="text-[11px] font-bold tabular-nums"
-                                  style={{ color: done ? "var(--color-primary)" : "#f59e0b" }}
-                                >
-                                  +{task.points}
-                                </span>
-                              </button>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    ))
+                        return (
+                          <button
+                            key={task.id}
+                            disabled={pending}
+                            onClick={() => toggleTask(task.id, child.id, task)}
+                            className="flex items-center gap-3 w-full text-left px-2 py-2.5 rounded-xl transition-all cursor-pointer"
+                            style={{
+                              backgroundColor: done ? "rgba(167,139,250,0.08)" : "rgba(255,255,255,0.03)",
+                              opacity: pending ? 0.6 : 1,
+                              animation: flashing ? "task-complete 0.5s ease" : undefined,
+                            }}
+                          >
+                            {done ? (
+                              <CheckSquare
+                                size={20}
+                                strokeWidth={1.5}
+                                style={{ color: "var(--color-primary)", flexShrink: 0 }}
+                              />
+                            ) : (
+                              <Square
+                                size={20}
+                                strokeWidth={1.5}
+                                style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+                              />
+                            )}
+                            <span className="text-lg leading-none" aria-hidden="true">{task.icon}</span>
+                            <span
+                              className="flex-1 text-sm font-medium"
+                              style={{
+                                color: done ? "var(--color-text-muted)" : "var(--color-text)",
+                                textDecoration: done ? "line-through" : "none",
+                              }}
+                            >
+                              {task.title}
+                            </span>
+                            <span
+                              className="text-[11px] font-bold tabular-nums"
+                              style={{ color: done ? "var(--color-primary)" : "#f59e0b" }}
+                            >
+                              +{task.points}
+                            </span>
+                          </button>
+                        );
+                      })}
+                    </div>
                   )}
                 </div>
               );

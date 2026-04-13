@@ -182,6 +182,8 @@
     "deleteRoutine": "Routine löschen",
     "addTask": "Aufgabe hinzufügen",
     "editTask": "Aufgabe bearbeiten",
+    "tasksFor": "Aufgaben für {name}",
+    "defaultRoutine": "Aufgaben",
     "deleteTask": "Aufgabe löschen",
     "addReward": "Belohnung hinzufügen",
     "editReward": "Belohnung bearbeiten",

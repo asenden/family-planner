@@ -9,6 +9,7 @@ interface FamilyMember {
   name: string;
   color: string;
   avatar?: string | null;
+  role?: string;
 }
 
 interface CalendarAccount {
@@ -110,10 +111,13 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
   const [routines, setRoutines] = useState<Routine[]>([]);
   const [rewards, setRewards] = useState<Reward[]>([]);
   const [loadingRoutines, setLoadingRoutines] = useState(false);
-  const [showAddRoutine, setShowAddRoutine] = useState(false);
   const [showAddReward, setShowAddReward] = useState(false);
-  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
   const [editingReward, setEditingReward] = useState<Reward | null>(null);
+  // Simplified task management state
+  const children = members.filter((m) => m.role === "child");
+  const [selectedChildId, setSelectedChildId] = useState<string>(() => children[0]?.id ?? "");
+  const [showAddTask, setShowAddTask] = useState(false);
+  const [editingTask, setEditingTask] = useState<{ task: RoutineTask; routineId: string } | null>(null);
 
   useEffect(() => {
     if (activeTab === "calendars") {
@@ -480,62 +484,147 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                 </p>
               ) : (
                 <>
-                  {/* --- Routines section --- */}
+                  {/* --- Tasks section --- */}
                   <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
-                        {tRoutines("manageRoutines")}
-                      </p>
-                      <button
-                        onClick={() => setShowAddRoutine(true)}
-                        className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer"
-                        style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}
-                      >
-                        <Plus size={12} /> {tRoutines("addRoutine")}
-                      </button>
-                    </div>
+                    {/* Child selector */}
+                    {children.length > 1 && (
+                      <div className="flex gap-1 mb-3 flex-wrap">
+                        {children.map((child) => (
+                          <button
+                            key={child.id}
+                            onClick={() => { setSelectedChildId(child.id); setShowAddTask(false); setEditingTask(null); }}
+                            className="flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-lg cursor-pointer transition-all"
+                            style={{
+                              backgroundColor: selectedChildId === child.id ? "var(--color-primary)" : "rgba(255,255,255,0.07)",
+                              color: selectedChildId === child.id ? "#fff" : "var(--color-text-muted)",
+                            }}
+                          >
+                            <span
+                              className="w-2 h-2 rounded-full shrink-0"
+                              style={{ backgroundColor: child.color ?? "#888" }}
+                            />
+                            {child.name}
+                          </button>
+                        ))}
+                      </div>
+                    )}
 
-                    <div className="space-y-2">
-                      {routines.map((routine) => (
-                        <div
-                          key={routine.id}
-                          className="flex items-center justify-between p-3 rounded-xl"
-                          style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
-                        >
+                    {children.length === 0 ? (
+                      <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>
+                        {tRoutines("noRoutines")}
+                      </p>
+                    ) : (
+                      (() => {
+                        const activeChild = children.find((c) => c.id === selectedChildId) ?? children[0];
+                        if (!activeChild) return null;
+                        const childRoutines = routines.filter((r) => r.assignedTo === activeChild.id);
+                        const allTasks = childRoutines.flatMap((r) =>
+                          r.tasks.map((t) => ({ ...t, routineId: r.id }))
+                        );
+
+                        return (
                           <div>
-                            <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
-                              {routine.icon} {routine.title}
-                            </p>
-                            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
-                              {routine.member.name} · {routine.tasks.length} tasks
-                            </p>
+                            <div className="flex items-center justify-between mb-2">
+                              <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                                {tRoutines("tasksFor", { name: activeChild.name })}
+                              </p>
+                              {!showAddTask && (
+                                <button
+                                  onClick={() => { setShowAddTask(true); setEditingTask(null); }}
+                                  className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer"
+                                  style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}
+                                >
+                                  <Plus size={12} /> {tRoutines("addTask")}
+                                </button>
+                              )}
+                            </div>
+
+                            <div className="space-y-2 mb-3">
+                              {allTasks.map((task) => (
+                                <div
+                                  key={task.id}
+                                  className="flex items-center justify-between p-2.5 rounded-xl"
+                                  style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                                >
+                                  <span className="text-sm flex-1" style={{ color: "var(--color-text)" }}>
+                                    {task.icon} {task.title}
+                                    <span className="ml-1.5 text-xs" style={{ color: "#f59e0b" }}>+{task.points}</span>
+                                  </span>
+                                  <div className="flex gap-1.5 shrink-0">
+                                    <button
+                                      onClick={() => { setEditingTask({ task, routineId: task.routineId }); setShowAddTask(false); }}
+                                      className="p-1.5 rounded-lg cursor-pointer"
+                                      style={{ color: "var(--color-text-muted)", backgroundColor: "rgba(255,255,255,0.05)" }}
+                                    >
+                                      <Pencil size={13} strokeWidth={1.5} />
+                                    </button>
+                                    <button
+                                      onClick={async () => {
+                                        if (!confirm(tRoutines("confirmDelete"))) return;
+                                        await fetch(`/api/families/${familyId}/routines/${task.routineId}/tasks/${task.id}`, { method: "DELETE" });
+                                        setRoutines((prev) => prev.map((r) =>
+                                          r.id === task.routineId
+                                            ? { ...r, tasks: r.tasks.filter((t) => t.id !== task.id) }
+                                            : r
+                                        ));
+                                      }}
+                                      className="p-1.5 rounded-lg cursor-pointer"
+                                      style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}
+                                    >
+                                      <Trash2 size={13} strokeWidth={1.5} />
+                                    </button>
+                                  </div>
+                                </div>
+                              ))}
+                              {allTasks.length === 0 && !showAddTask && (
+                                <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>{tRoutines("noRoutines")}</p>
+                              )}
+                            </div>
+
+                            {/* Add Task inline form */}
+                            {showAddTask && (
+                              <AddTaskForm
+                                familyId={familyId}
+                                memberId={activeChild.id}
+                                routines={routines}
+                                onClose={() => setShowAddTask(false)}
+                                onAdded={(task, routineId) => {
+                                  setRoutines((prev) => {
+                                    const exists = prev.find((r) => r.id === routineId);
+                                    if (exists) {
+                                      return prev.map((r) => r.id === routineId ? { ...r, tasks: [...r.tasks, task] } : r);
+                                    }
+                                    return prev;
+                                  });
+                                  setShowAddTask(false);
+                                }}
+                                onRoutineCreated={(routine) => {
+                                  setRoutines((prev) => [...prev, routine]);
+                                }}
+                              />
+                            )}
+
+                            {/* Edit Task inline form */}
+                            {editingTask && (
+                              <EditTaskForm
+                                familyId={familyId}
+                                routineId={editingTask.routineId}
+                                task={editingTask.task}
+                                onClose={() => setEditingTask(null)}
+                                onUpdated={(updatedTask) => {
+                                  setRoutines((prev) => prev.map((r) =>
+                                    r.id === editingTask.routineId
+                                      ? { ...r, tasks: r.tasks.map((t) => t.id === updatedTask.id ? updatedTask : t) }
+                                      : r
+                                  ));
+                                  setEditingTask(null);
+                                }}
+                              />
+                            )}
                           </div>
-                          <div className="flex gap-2">
-                            <button
-                              onClick={() => setEditingRoutine(routine)}
-                              className="p-1.5 rounded-lg cursor-pointer"
-                              style={{ color: "var(--color-text-muted)", backgroundColor: "rgba(255,255,255,0.05)" }}
-                            >
-                              <Pencil size={14} strokeWidth={1.5} />
-                            </button>
-                            <button
-                              onClick={async () => {
-                                if (!confirm(tRoutines("confirmDelete"))) return;
-                                await fetch(`/api/families/${familyId}/routines/${routine.id}`, { method: "DELETE" });
-                                setRoutines((prev) => prev.filter((r) => r.id !== routine.id));
-                              }}
-                              className="p-1.5 rounded-lg cursor-pointer"
-                              style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}
-                            >
-                              <Trash2 size={14} strokeWidth={1.5} />
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                      {routines.length === 0 && (
-                        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>{tRoutines("noRoutines")}</p>
-                      )}
-                    </div>
+                        );
+                      })()
+                    )}
                   </div>
 
                   {/* --- Rewards section --- */}
@@ -594,19 +683,6 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                     </div>
                   </div>
 
-                  {/* Add Routine Form */}
-                  {showAddRoutine && (
-                    <AddRoutineForm
-                      familyId={familyId}
-                      members={members}
-                      onClose={() => setShowAddRoutine(false)}
-                      onAdded={(routine) => {
-                        setRoutines((prev) => [...prev, routine]);
-                        setShowAddRoutine(false);
-                      }}
-                    />
-                  )}
-
                   {/* Add Reward Form */}
                   {showAddReward && (
                     <AddRewardForm
@@ -615,20 +691,6 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                       onAdded={(reward) => {
                         setRewards((prev) => [...prev, reward]);
                         setShowAddReward(false);
-                      }}
-                    />
-                  )}
-
-                  {/* Edit Routine Modal */}
-                  {editingRoutine && (
-                    <EditRoutineForm
-                      familyId={familyId}
-                      routine={editingRoutine}
-                      members={members}
-                      onClose={() => setEditingRoutine(null)}
-                      onUpdated={(updated) => {
-                        setRoutines((prev) => prev.map((r) => r.id === updated.id ? updated : r));
-                        setEditingRoutine(null);
                       }}
                     />
                   )}
@@ -1124,40 +1186,59 @@ function AddCalendarForm({
   );
 }
 
-function AddRoutineForm({
+function AddTaskForm({
   familyId,
-  members,
+  memberId,
+  routines,
   onClose,
   onAdded,
+  onRoutineCreated,
 }: {
   familyId: string;
-  members: FamilyMember[];
+  memberId: string;
+  routines: Routine[];
   onClose: () => void;
-  onAdded: (routine: Routine) => void;
+  onAdded: (task: RoutineTask, routineId: string) => void;
+  onRoutineCreated: (routine: Routine) => void;
 }) {
   const tRoutines = useTranslations("routines");
   const [title, setTitle] = useState("");
-  const [icon, setIcon] = useState("📋");
-  const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">("daily");
-  const [customDays, setCustomDays] = useState<number[]>([]);
-  const [assignedTo, setAssignedTo] = useState(members[0]?.id ?? "");
+  const [icon, setIcon] = useState("✅");
+  const [points, setPoints] = useState(1);
   const [saving, setSaving] = useState(false);
-
-  const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/families/${familyId}/routines`, {
+      // Find or create a default routine for this child
+      let routine = routines.find((r) => r.assignedTo === memberId);
+      if (!routine) {
+        const res = await fetch(`/api/families/${familyId}/routines`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title: tRoutines("defaultRoutine"),
+            icon: "📋",
+            schedule: "daily",
+            customDays: [],
+            assignedTo: memberId,
+          }),
+        });
+        if (!res.ok) return;
+        const data = await res.json();
+        routine = data.routine;
+        onRoutineCreated(data.routine);
+      }
+      const res = await fetch(`/api/families/${familyId}/routines/${routine!.id}/tasks`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, icon, schedule, customDays, assignedTo }),
+        body: JSON.stringify({ title, icon, points }),
       });
       if (res.ok) {
         const data = await res.json();
-        onAdded(data.routine);
+        onAdded(data.task, routine!.id);
       }
     } finally {
       setSaving(false);
@@ -1166,7 +1247,7 @@ function AddRoutineForm({
 
   return (
     <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
-      <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("addRoutine")}</p>
+      <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("addTask")}</p>
       <div className="flex gap-2">
         <input
           type="text"
@@ -1180,55 +1261,105 @@ function AddRoutineForm({
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
-          placeholder={tRoutines("routineTitle")}
+          placeholder={tRoutines("taskTitle")}
           className="flex-1 rounded-xl px-3 py-2 text-sm"
           style={inputStyle}
           required
         />
+        <input
+          type="number"
+          value={points}
+          min={1}
+          onChange={(e) => setPoints(Number(e.target.value))}
+          className="w-16 rounded-xl px-3 py-2 text-sm text-center"
+          style={inputStyle}
+        />
       </div>
-      <select
-        value={schedule}
-        onChange={(e) => setSchedule(e.target.value as "daily" | "weekdays" | "custom")}
-        className="w-full rounded-xl px-3 py-2 text-sm"
-        style={inputStyle}
-      >
-        <option value="daily">{tRoutines("scheduleDaily")}</option>
-        <option value="weekdays">{tRoutines("scheduleWeekdays")}</option>
-        <option value="custom">{tRoutines("scheduleCustom")}</option>
-      </select>
-      {schedule === "custom" && (
-        <div className="flex gap-1">
-          {DAY_LABELS.map((label, i) => (
-            <button
-              key={i}
-              type="button"
-              onClick={() => setCustomDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i])}
-              className="w-8 h-8 rounded-lg text-xs font-bold cursor-pointer"
-              style={{
-                backgroundColor: customDays.includes(i) ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
-                color: customDays.includes(i) ? "#fff" : "var(--color-text-muted)",
-              }}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-      )}
-      <select
-        value={assignedTo}
-        onChange={(e) => setAssignedTo(e.target.value)}
-        className="w-full rounded-xl px-3 py-2 text-sm"
-        style={inputStyle}
-      >
-        {members.map((m) => (
-          <option key={m.id} value={m.id}>{m.name}</option>
-        ))}
-      </select>
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
         </button>
-        <button type="submit" disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
+        <button type="submit" disabled={saving || !title.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
+          {saving ? "..." : "Save"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function EditTaskForm({
+  familyId,
+  routineId,
+  task,
+  onClose,
+  onUpdated,
+}: {
+  familyId: string;
+  routineId: string;
+  task: RoutineTask;
+  onClose: () => void;
+  onUpdated: (task: RoutineTask) => void;
+}) {
+  const tRoutines = useTranslations("routines");
+  const [title, setTitle] = useState(task.title);
+  const [icon, setIcon] = useState(task.icon);
+  const [points, setPoints] = useState(task.points);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/families/${familyId}/routines/${routineId}/tasks/${task.id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, icon, points }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onUpdated(data.task);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("editTask")}</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          className="w-14 text-center text-2xl rounded-xl p-2"
+          style={inputStyle}
+          maxLength={2}
+        />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={tRoutines("taskTitle")}
+          className="flex-1 rounded-xl px-3 py-2 text-sm"
+          style={inputStyle}
+          required
+        />
+        <input
+          type="number"
+          value={points}
+          min={1}
+          onChange={(e) => setPoints(Number(e.target.value))}
+          className="w-16 rounded-xl px-3 py-2 text-sm text-center"
+          style={inputStyle}
+        />
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
+          Cancel
+        </button>
+        <button type="submit" disabled={saving || !title.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
           {saving ? "..." : "Save"}
         </button>
       </div>
@@ -1316,150 +1447,6 @@ function AddRewardForm({
   );
 }
 
-function EditRoutineForm({
-  familyId,
-  routine,
-  members,
-  onClose,
-  onUpdated,
-}: {
-  familyId: string;
-  routine: Routine;
-  members: FamilyMember[];
-  onClose: () => void;
-  onUpdated: (routine: Routine) => void;
-}) {
-  const tRoutines = useTranslations("routines");
-  const [title, setTitle] = useState(routine.title);
-  const [icon, setIcon] = useState(routine.icon);
-  const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">(routine.schedule as "daily" | "weekdays" | "custom");
-  const [customDays, setCustomDays] = useState<number[]>(routine.customDays ?? []);
-  const [assignedTo, setAssignedTo] = useState(routine.assignedTo);
-  const [tasks, setTasks] = useState(routine.tasks);
-  const [newTaskTitle, setNewTaskTitle] = useState("");
-  const [newTaskIcon, setNewTaskIcon] = useState("✅");
-  const [newTaskPoints, setNewTaskPoints] = useState(1);
-  const [saving, setSaving] = useState(false);
-
-  const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
-
-  async function handleSave(e: React.FormEvent) {
-    e.preventDefault();
-    if (!title.trim()) return;
-    setSaving(true);
-    try {
-      const res = await fetch(`/api/families/${familyId}/routines/${routine.id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, icon, schedule, customDays, assignedTo }),
-      });
-      if (res.ok) {
-        const data = await res.json();
-        onUpdated({ ...data.routine, tasks });
-      }
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  async function handleAddTask() {
-    if (!newTaskTitle.trim()) return;
-    const res = await fetch(`/api/families/${familyId}/routines/${routine.id}/tasks`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ title: newTaskTitle, icon: newTaskIcon, points: newTaskPoints }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      setTasks((prev) => [...prev, data.task]);
-      setNewTaskTitle("");
-      setNewTaskIcon("✅");
-      setNewTaskPoints(1);
-    }
-  }
-
-  async function handleDeleteTask(taskId: string) {
-    await fetch(`/api/families/${familyId}/routines/${routine.id}/tasks/${taskId}`, { method: "DELETE" });
-    setTasks((prev) => prev.filter((t) => t.id !== taskId));
-  }
-
-  return (
-    <div className="fixed inset-0 z-[70] flex items-center justify-center bg-black/60 backdrop-blur-sm" onClick={onClose}>
-      <div
-        className="glass w-full max-w-md mx-4 p-6 max-h-[85vh] overflow-y-auto"
-        style={{ borderRadius: "var(--border-radius)" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <form onSubmit={handleSave} className="space-y-3">
-          <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("editRoutine")}</p>
-
-          <div className="flex gap-2">
-            <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} className="w-14 text-center text-2xl rounded-xl p-2" style={inputStyle} maxLength={2} />
-            <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tRoutines("routineTitle")} className="flex-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} required />
-          </div>
-
-          <select value={schedule} onChange={(e) => setSchedule(e.target.value as "daily" | "weekdays" | "custom")} className="w-full rounded-xl px-3 py-2 text-sm" style={inputStyle}>
-            <option value="daily">{tRoutines("scheduleDaily")}</option>
-            <option value="weekdays">{tRoutines("scheduleWeekdays")}</option>
-            <option value="custom">{tRoutines("scheduleCustom")}</option>
-          </select>
-
-          {schedule === "custom" && (
-            <div className="flex gap-1">
-              {DAY_LABELS.map((label, i) => (
-                <button key={i} type="button" onClick={() => setCustomDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i])} className="w-8 h-8 rounded-lg text-xs font-bold cursor-pointer" style={{ backgroundColor: customDays.includes(i) ? "var(--color-primary)" : "rgba(255,255,255,0.06)", color: customDays.includes(i) ? "#fff" : "var(--color-text-muted)" }}>
-                  {label}
-                </button>
-              ))}
-            </div>
-          )}
-
-          <select value={assignedTo} onChange={(e) => setAssignedTo(e.target.value)} className="w-full rounded-xl px-3 py-2 text-sm" style={inputStyle}>
-            {members.map((m) => (<option key={m.id} value={m.id}>{m.name}</option>))}
-          </select>
-
-          {/* Tasks list */}
-          <div>
-            <p className="text-xs font-bold uppercase tracking-widest mb-2" style={{ color: "var(--color-text-muted)" }}>
-              {tRoutines("tasks")} ({tasks.length})
-            </p>
-            <div className="space-y-1.5">
-              {tasks.map((task) => (
-                <div key={task.id} className="flex items-center justify-between p-2 rounded-lg" style={{ backgroundColor: "rgba(255,255,255,0.04)" }}>
-                  <span className="text-sm" style={{ color: "var(--color-text)" }}>
-                    {task.icon} {task.title} <span className="text-xs" style={{ color: "#f59e0b" }}>+{task.points}</span>
-                  </span>
-                  <button type="button" onClick={() => handleDeleteTask(task.id)} className="text-xs px-1.5 py-0.5 rounded cursor-pointer" style={{ color: "#f87171" }}>
-                    ✕
-                  </button>
-                </div>
-              ))}
-            </div>
-
-            {/* Add task inline */}
-            <div className="flex gap-1.5 mt-2">
-              <input type="text" value={newTaskIcon} onChange={(e) => setNewTaskIcon(e.target.value)} className="w-10 text-center text-lg rounded-lg p-1" style={inputStyle} maxLength={2} />
-              <input type="text" value={newTaskTitle} onChange={(e) => setNewTaskTitle(e.target.value)} placeholder={tRoutines("taskTitle")} className="flex-1 rounded-lg px-2 py-1 text-sm" style={inputStyle} />
-              <input type="number" value={newTaskPoints} onChange={(e) => setNewTaskPoints(Number(e.target.value))} className="w-12 rounded-lg px-2 py-1 text-sm text-center" style={inputStyle} min={1} />
-              <button type="button" onClick={handleAddTask} disabled={!newTaskTitle.trim()} className="px-2 py-1 rounded-lg text-sm font-bold cursor-pointer disabled:opacity-30" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
-                +
-              </button>
-            </div>
-          </div>
-
-          <div className="flex gap-2 pt-2">
-            <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
-              Cancel
-            </button>
-            <button type="submit" disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
-              {saving ? "..." : tRoutines("save")}
-            </button>
-          </div>
-        </form>
-      </div>
-    </div>
-  );
-}
 
 function EditRewardForm({
   familyId,
