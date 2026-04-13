@@ -61,6 +61,7 @@ export function WidgetGrid({
 }: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
+  const [fullViewKey, setFullViewKey] = useState(0);
   const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>();
 
   if (fullView === "calendar" && familyId) {
@@ -78,6 +79,7 @@ export function WidgetGrid({
   if (fullView === "routines" && familyId) {
     return (
       <RoutinesFullView
+        key={fullViewKey}
         familyId={familyId}
         routines={routines}
         rewards={rewards}
@@ -109,7 +111,7 @@ export function WidgetGrid({
         completedTaskIds={todayCompletedTaskIds}
         pointsMap={pointsMap}
         members={familyMembers as any[]}
-        onTap={() => setFullView("routines")}
+        onTap={() => { setFullViewKey((k) => k + 1); setFullView("routines"); }}
         streakMap={streakMap}
         yesterdayPerfectMap={yesterdayPerfectMap}
       />
