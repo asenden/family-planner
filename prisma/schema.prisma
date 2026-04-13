@@ -280,6 +280,7 @@ enum Feeling {
 model PinboardMessage {
   id        String    @id @default(cuid())
   content   String
+  color     String    @default("#fef08a")
   expiresAt DateTime?
 
   authorId String
