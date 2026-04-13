@@ -153,6 +153,23 @@
     "connecting": "Verbinde...",
     "saving": "Speichere..."
   },
+  "pinboard": {
+    "title": "Pinnwand",
+    "empty": "Noch keine Notizen",
+    "addNote": "Notiz hinzufügen",
+    "placeholder": "Was möchtest du sagen?",
+    "color": "Farbe",
+    "expires": "Ablauf",
+    "expiresNever": "Nie",
+    "expiresToday": "Ende des Tages",
+    "expiresTomorrow": "Morgen",
+    "expiresWeek": "Diese Woche",
+    "pin": "Anheften!",
+    "cancel": "Abbrechen",
+    "delete": "Entfernen",
+    "deleteConfirm": "Diese Notiz entfernen?",
+    "charsLeft": "{count} übrig"
+  },
   "routines": {
     "title": "Routinen",
     "noRoutines": "Noch keine Routinen",

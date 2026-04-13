@@ -153,6 +153,23 @@
     "connecting": "Connecting...",
     "saving": "Saving..."
   },
+  "pinboard": {
+    "title": "Pinboard",
+    "empty": "No notes yet",
+    "addNote": "Add Note",
+    "placeholder": "What's on your mind?",
+    "color": "Color",
+    "expires": "Expires",
+    "expiresNever": "Never",
+    "expiresToday": "End of day",
+    "expiresTomorrow": "Tomorrow",
+    "expiresWeek": "This week",
+    "pin": "Pin it!",
+    "cancel": "Cancel",
+    "delete": "Remove",
+    "deleteConfirm": "Remove this note?",
+    "charsLeft": "{count} left"
+  },
   "routines": {
     "title": "Routines",
     "noRoutines": "No routines yet",

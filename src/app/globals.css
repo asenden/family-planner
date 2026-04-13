@@ -1,4 +1,4 @@
-@import url("https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Caveat:wght@400;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap");
 @import "tailwindcss";
 
 :root {
@@ -108,6 +108,30 @@ body::after {
 
 .animate-slide-up {
   animation: slide-up 0.5s cubic-bezier(0.4, 0, 0.2, 1) backwards;
+}
+
+/* Post-it animations */
+@keyframes postit-fly-in {
+  from {
+    opacity: 0;
+    transform: translateY(40px) rotate(10deg) scale(0.8);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) rotate(var(--postit-rotation, 0deg)) scale(1);
+  }
+}
+
+@keyframes postit-crumple {
+  to {
+    transform: scale(0) rotate(20deg);
+    opacity: 0;
+  }
+}
+
+.postit-note:hover {
+  transform: translateY(-4px) rotate(var(--postit-hover-rotation, 0deg)) !important;
+  box-shadow: 4px 8px 20px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.15) !important;
 }
 
 /* Subtle grain texture overlay */
