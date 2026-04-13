@@ -396,7 +396,7 @@ export function FeelingsFullView({
                   >
                     <FeelingFace
                       feeling={feeling ?? "none"}
-                      size={20}
+                      size={32}
                     />
                   </div>
                 );

@@ -11,7 +11,7 @@ const FEELING_COLORS: Record<string, string> = {
   neutral: "#94a3b8",
   sad: "#60a5fa",
   angry: "#f87171",
-  excited: "#a78bfa",
+  excited: "#7c8db5", // "tired" — mapped to excited in DB enum
   none: "#3d3552",
 };
 
@@ -161,40 +161,49 @@ function AngryFeatures({ darkColor }: { darkColor: string }) {
 }
 
 function ExcitedFeatures({ darkColor }: { darkColor: string }) {
+  // "Tired/Sleepy" face — half-closed eyes, small yawn mouth
   return (
     <>
-      {/* Star-shaped eyes using 4-pointed star paths */}
-      <StarEye cx={17} cy={20} darkColor={darkColor} />
-      <StarEye cx={31} cy={20} darkColor={darkColor} />
-      {/* Big open smile */}
+      {/* Half-closed eyes (arcs instead of circles) */}
       <path
-        d="M 13 27 Q 24 38 35 27"
+        d="M 13.5 21 Q 17 18 20.5 21"
         stroke={darkColor}
         strokeWidth="2.2"
         strokeLinecap="round"
-        fill="rgba(255,255,255,0.18)"
+        fill="none"
       />
-      {/* Cheek blush */}
-      <ellipse cx="12" cy="30" rx="3.5" ry="2" fill={darkColor} opacity="0.15" />
-      <ellipse cx="36" cy="30" rx="3.5" ry="2" fill={darkColor} opacity="0.15" />
-    </>
-  );
-}
-
-function StarEye({ cx, cy, darkColor }: { cx: number; cy: number; darkColor: string }) {
-  const r = 3;
-  const ri = 1.3;
-  const points = 4;
-  const pts: string[] = [];
-  for (let i = 0; i < points * 2; i++) {
-    const angle = (i * Math.PI) / points - Math.PI / 2;
-    const radius = i % 2 === 0 ? r : ri;
-    pts.push(`${cx + radius * Math.cos(angle)},${cy + radius * Math.sin(angle)}`);
-  }
-  return (
-    <>
-      <polygon points={pts.join(" ")} fill={darkColor} />
-      <circle cx={cx + 0.8} cy={cy - 0.8} r={0.85} fill="rgba(255,255,255,0.6)" />
+      <path
+        d="M 27.5 21 Q 31 18 34.5 21"
+        stroke={darkColor}
+        strokeWidth="2.2"
+        strokeLinecap="round"
+        fill="none"
+      />
+      {/* Small oval yawn/sigh mouth */}
+      <ellipse cx="24" cy="30" rx="3.5" ry="2.5" fill={darkColor} opacity="0.7" />
+      {/* Zzz */}
+      <text
+        x="36"
+        y="14"
+        fontSize="7"
+        fontWeight="700"
+        fill={darkColor}
+        opacity="0.5"
+        fontFamily="Plus Jakarta Sans, sans-serif"
+      >
+        z
+      </text>
+      <text
+        x="39"
+        y="10"
+        fontSize="5"
+        fontWeight="700"
+        fill={darkColor}
+        opacity="0.35"
+        fontFamily="Plus Jakarta Sans, sans-serif"
+      >
+        z
+      </text>
     </>
   );
 }
