@@ -52,6 +52,8 @@ model FamilyMember {
   feelingCheckins    FeelingCheckin[]
   pinboardMessages   PinboardMessage[]
   photos             Photo[]
+  streak             Streak?
+  bonusLogs          BonusLog[]
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -300,4 +302,31 @@ model Photo {
   family     Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
 
   createdAt DateTime @default(now())
+}
+
+model Streak {
+  id          String    @id @default(cuid())
+  memberId    String    @unique  // ONE streak per child
+  current     Int       @default(0)
+  longest     Int       @default(0)
+  lastDate    DateTime?
+  frozenUntil DateTime?
+
+  member FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId])
+}
+
+model BonusLog {
+  id        String   @id @default(cuid())
+  memberId  String
+  date      DateTime
+  type      String   // "critical_hit" | "mystery_spin" | "perfect_day" | "streak_milestone"
+  points    Int
+  metadata  Json?
+  createdAt DateTime @default(now())
+
+  member FamilyMember @relation(fields: [memberId], references: [id], onDelete: Cascade)
+
+  @@index([memberId, date])
 }
