@@ -36,6 +36,14 @@ export async function GET(
       earned[c.memberId] = (earned[c.memberId] ?? 0) + c.task.points;
     }
 
+    const bonusLogs = await db.bonusLog.findMany({
+      where: { memberId: { in: memberIds } },
+      select: { memberId: true, points: true },
+    });
+    for (const b of bonusLogs) {
+      earned[b.memberId] = (earned[b.memberId] ?? 0) + b.points;
+    }
+
     for (const r of redemptions) {
       spent[r.memberId] = (spent[r.memberId] ?? 0) + r.reward.cost;
     }
