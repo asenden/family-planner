@@ -8,7 +8,15 @@
       "Bash(npm install:*)",
       "Bash(node:*)",
       "Bash(npx tsc:*)",
-      "Bash(ssh:*)"
+      "Bash(ssh:*)",
+      "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/routines/\\\\[routineId\\\\]/tasks/\\\\[taskId\\\\])",
+      "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/routine-completions)",
+      "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/rewards/\\\\[rewardId\\\\])",
+      "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/reward-redemptions)",
+      "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/points)",
+      "Bash(git init:*)",
+      "Bash(git config:*)",
+      "Bash(git:*)"
     ]
   }
 }
