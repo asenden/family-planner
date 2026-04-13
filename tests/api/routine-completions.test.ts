@@ -6,6 +6,23 @@ vi.mock("@/lib/db", () => ({
     routineCompletion: {
       deleteMany: vi.fn(),
       upsert: vi.fn(),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    routineTask: {
+      findUnique: vi.fn().mockResolvedValue({ points: 5, routineId: "r1" }),
+    },
+    routine: {
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    bonusLog: {
+      create: vi.fn().mockResolvedValue({}),
+      findFirst: vi.fn().mockResolvedValue(null),
+      findMany: vi.fn().mockResolvedValue([]),
+    },
+    streak: {
+      findUnique: vi.fn().mockResolvedValue(null),
+      create: vi.fn().mockResolvedValue({ id: "s1", memberId: "m1", current: 1, longest: 1, lastDate: null, frozenUntil: null }),
+      update: vi.fn().mockResolvedValue({}),
     },
   },
 }));
@@ -30,6 +47,9 @@ describe("POST /api/families/[familyId]/routine-completions", () => {
   it("creates completion when completed=true", async () => {
     const mockCompletion = { id: "c1", taskId: "t1", memberId: "m1", date: new Date("2026-04-13") };
     vi.mocked(db.routineCompletion.upsert).mockResolvedValue(mockCompletion as never);
+    vi.mocked(db.routineTask.findUnique).mockResolvedValue({ points: 5, routineId: "r1" } as never);
+    vi.mocked(db.routine.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.routineCompletion.findMany).mockResolvedValue([] as never);
 
     const res = await toggleCompletion(
       makeRequest({ taskId: "t1", memberId: "m1", date: "2026-04-13", completed: true }),
@@ -44,6 +64,10 @@ describe("POST /api/families/[familyId]/routine-completions", () => {
 
   it("removes completion when completed=false", async () => {
     vi.mocked(db.routineCompletion.deleteMany).mockResolvedValue({ count: 1 } as never);
+    vi.mocked(db.routineTask.findUnique).mockResolvedValue({ points: 5, routineId: "r1" } as never);
+    vi.mocked(db.routine.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.routineCompletion.findMany).mockResolvedValue([] as never);
+    vi.mocked(db.streak.findUnique).mockResolvedValue(null as never);
 
     const res = await toggleCompletion(
       makeRequest({ taskId: "t1", memberId: "m1", date: "2026-04-13", completed: false }),
