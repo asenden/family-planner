@@ -243,7 +243,7 @@ async function getFamilyData(locale: string) {
     yesterdayPerfectMap,
     feelingCheckins: feelingCheckins.map((f) => ({
       id: f.id,
-      date: f.date.toISOString(),
+      date: `${f.date.getFullYear()}-${String(f.date.getMonth() + 1).padStart(2, "0")}-${String(f.date.getDate()).padStart(2, "0")}`,
       feeling: f.feeling,
       note: f.note ?? null,
       member: f.member,

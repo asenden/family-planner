@@ -32,7 +32,7 @@ interface FeelingsFullViewProps {
 
 // Get date string YYYY-MM-DD from a Date
 function toDateStr(d: Date): string {
-  return d.toISOString().slice(0, 10);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
 // Get last 7 days as date strings, oldest first
@@ -85,7 +85,9 @@ export function FeelingsFullView({
   // Build lookup: memberId + dateStr → feeling
   const feelingMap: Record<string, Feeling> = {};
   for (const f of feelings) {
-    const key = `${f.member.id}__${toDateStr(new Date(f.date))}`;
+    // f.date may be "YYYY-MM-DD" or ISO string — normalize to local date string
+    const dateStr = f.date.length === 10 ? f.date : toDateStr(new Date(f.date));
+    const key = `${f.member.id}__${dateStr}`;
     feelingMap[key] = f.feeling;
   }
 
@@ -118,13 +120,20 @@ export function FeelingsFullView({
       if (res.ok) {
         const { checkin } = await res.json();
         dirty.current = true;
+        // Normalize the date to YYYY-MM-DD local format
+        const normalizedCheckin = {
+          ...checkin,
+          date: toDateStr(new Date(checkin.date)),
+        };
         // Update local feelings state with the full checkin (includes member relation)
         setFeelings((prev) => {
-          const todayDate = toDateStr(new Date(checkin.date));
           const filtered = prev.filter(
-            (f) => !(f.member.id === selectedMemberId && toDateStr(new Date(f.date)) === todayDate)
+            (f) => {
+              const fDate = f.date.length === 10 ? f.date : toDateStr(new Date(f.date));
+              return !(f.member.id === selectedMemberId && fDate === normalizedCheckin.date);
+            }
           );
-          return [...filtered, checkin];
+          return [...filtered, normalizedCheckin];
         });
         setSaved(true);
         setTimeout(() => {
