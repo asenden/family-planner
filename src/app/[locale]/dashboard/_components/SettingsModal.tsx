@@ -627,13 +627,30 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                                 familyId={familyId}
                                 routineId={editingTask.routineId}
                                 task={editingTask.task}
+                                routines={routines}
+                                memberId={selectedChildId}
                                 onClose={() => setEditingTask(null)}
-                                onUpdated={(updatedTask) => {
-                                  setRoutines((prev) => prev.map((r) =>
-                                    r.id === editingTask.routineId
-                                      ? { ...r, tasks: r.tasks.map((t) => t.id === updatedTask.id ? updatedTask : t) }
-                                      : r
-                                  ));
+                                onRoutineCreated={(routine) => setRoutines((prev) => [...prev, routine])}
+                                onUpdated={(updatedTask, oldRoutineId, newRoutineId) => {
+                                  if (oldRoutineId === newRoutineId) {
+                                    // Same routine — just update the task
+                                    setRoutines((prev) => prev.map((r) =>
+                                      r.id === oldRoutineId
+                                        ? { ...r, tasks: r.tasks.map((t) => t.id === updatedTask.id ? updatedTask : t) }
+                                        : r
+                                    ));
+                                  } else {
+                                    // Moved to different routine — remove from old, add to new
+                                    setRoutines((prev) => prev.map((r) => {
+                                      if (r.id === oldRoutineId) {
+                                        return { ...r, tasks: r.tasks.filter((t) => t.id !== editingTask.task.id) };
+                                      }
+                                      if (r.id === newRoutineId) {
+                                        return { ...r, tasks: [...r.tasks, updatedTask] };
+                                      }
+                                      return r;
+                                    }));
+                                  }
                                   setEditingTask(null);
                                 }}
                               />
@@ -1390,35 +1407,107 @@ function EditTaskForm({
   familyId,
   routineId,
   task,
+  routines,
+  memberId,
   onClose,
   onUpdated,
+  onRoutineCreated,
 }: {
   familyId: string;
   routineId: string;
   task: RoutineTask;
+  routines: Routine[];
+  memberId: string;
   onClose: () => void;
-  onUpdated: (task: RoutineTask) => void;
+  onUpdated: (task: RoutineTask, oldRoutineId: string, newRoutineId: string) => void;
+  onRoutineCreated: (routine: Routine) => void;
 }) {
   const tRoutines = useTranslations("routines");
+
+  // Determine current time slot and schedule from the parent routine
+  const currentRoutine = routines.find((r) => r.id === routineId);
+  const SLOT_TITLES_REVERSE: Record<string, "morning" | "daytime" | "evening"> = { "Morgens": "morning", "Tagsüber": "daytime", "Abends": "evening" };
+  const currentSlot = currentRoutine ? (SLOT_TITLES_REVERSE[currentRoutine.title] ?? "morning") : "morning";
+  const currentSchedule = currentRoutine?.schedule ?? "daily";
+  const currentCustomDays = currentRoutine?.customDays ?? [];
+
   const [title, setTitle] = useState(task.title);
   const [icon, setIcon] = useState(task.icon);
   const [points, setPoints] = useState(task.points);
+  const [timeSlot, setTimeSlot] = useState<"morning" | "daytime" | "evening">(currentSlot);
+  const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">(currentSchedule as "daily" | "weekdays" | "custom");
+  const [customDays, setCustomDays] = useState<number[]>(currentCustomDays);
   const [saving, setSaving] = useState(false);
+
+  const SLOT_TITLES: Record<string, string> = { morning: "Morgens", daytime: "Tagsüber", evening: "Abends" };
+  const SLOT_ICONS: Record<string, string> = { morning: "🌅", daytime: "☀️", evening: "🌙" };
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
+
     try {
-      const res = await fetch(`/api/families/${familyId}/routines/${routineId}/tasks/${task.id}`, {
+      // First, update the task fields (title, icon, points)
+      const updateRes = await fetch(`/api/families/${familyId}/routines/${routineId}/tasks/${task.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, icon, points }),
       });
-      if (res.ok) {
-        const data = await res.json();
-        onUpdated(data.task);
+      if (!updateRes.ok) { setSaving(false); return; }
+      const updatedTask = (await updateRes.json()).task;
+
+      // Check if time slot or schedule changed — need to move task to a different routine
+      const slotChanged = timeSlot !== currentSlot;
+      const scheduleChanged = schedule !== currentSchedule || JSON.stringify([...customDays].sort()) !== JSON.stringify([...currentCustomDays].sort());
+
+      if (slotChanged || scheduleChanged) {
+        // Find or create the target routine
+        const targetTitle = SLOT_TITLES[timeSlot];
+        let targetRoutine = routines.find((r) =>
+          r.assignedTo === memberId &&
+          r.title === targetTitle &&
+          r.schedule === schedule &&
+          (schedule !== "custom" || JSON.stringify([...r.customDays].sort()) === JSON.stringify([...customDays].sort()))
+        );
+
+        if (!targetRoutine) {
+          const res = await fetch(`/api/families/${familyId}/routines`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              title: targetTitle,
+              icon: SLOT_ICONS[timeSlot],
+              schedule,
+              customDays: schedule === "custom" ? customDays : [],
+              assignedTo: memberId,
+            }),
+          });
+          if (res.ok) {
+            const data = await res.json();
+            targetRoutine = data.routine;
+            onRoutineCreated(data.routine);
+          }
+        }
+
+        if (targetRoutine && targetRoutine.id !== routineId) {
+          // Delete from old routine, create in new one
+          await fetch(`/api/families/${familyId}/routines/${routineId}/tasks/${task.id}`, { method: "DELETE" });
+          const createRes = await fetch(`/api/families/${familyId}/routines/${targetRoutine.id}/tasks`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ title, icon, points }),
+          });
+          if (createRes.ok) {
+            const newTask = (await createRes.json()).task;
+            onUpdated(newTask, routineId, targetRoutine.id);
+            setSaving(false);
+            return;
+          }
+        }
       }
+
+      onUpdated(updatedTask, routineId, routineId);
     } finally {
       setSaving(false);
     }
@@ -1428,38 +1517,57 @@ function EditTaskForm({
     <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
       <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("editTask")}</p>
       <div className="flex gap-2">
-        <input
-          type="text"
-          value={icon}
-          onChange={(e) => setIcon(e.target.value)}
-          className="w-14 text-center text-2xl rounded-xl p-2"
-          style={inputStyle}
-          maxLength={2}
-        />
-        <input
-          type="text"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-          placeholder={tRoutines("taskTitle")}
-          className="flex-1 rounded-xl px-3 py-2 text-sm"
-          style={inputStyle}
-          required
-        />
-        <input
-          type="number"
-          value={points}
-          min={1}
-          onChange={(e) => setPoints(Number(e.target.value))}
-          className="w-16 rounded-xl px-3 py-2 text-sm text-center"
-          style={inputStyle}
-        />
+        <input type="text" value={icon} onChange={(e) => setIcon(e.target.value)} className="w-14 text-center text-2xl rounded-xl p-2" style={inputStyle} maxLength={2} />
+        <input type="text" value={title} onChange={(e) => setTitle(e.target.value)} placeholder={tRoutines("taskTitle")} className="flex-1 rounded-xl px-3 py-2 text-sm" style={inputStyle} required />
+        <input type="number" value={points} min={1} onChange={(e) => setPoints(Number(e.target.value))} className="w-16 rounded-xl px-3 py-2 text-sm text-center" style={inputStyle} />
       </div>
+
+      {/* Time of day */}
+      <div>
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-muted)" }}>{tRoutines("timeOfDay")}</p>
+        <div className="flex gap-1.5">
+          {([
+            { key: "morning" as const, icon: "🌅", label: tRoutines("morning") },
+            { key: "daytime" as const, icon: "☀️", label: tRoutines("daytime") },
+            { key: "evening" as const, icon: "🌙", label: tRoutines("evening") },
+          ]).map((slot) => (
+            <button key={slot.key} type="button" onClick={() => setTimeSlot(slot.key)} className="flex-1 py-2 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-center gap-1.5" style={{ backgroundColor: timeSlot === slot.key ? "var(--color-primary)" : "rgba(255,255,255,0.06)", color: timeSlot === slot.key ? "#fff" : "var(--color-text-muted)" }}>
+              <span>{slot.icon}</span> {slot.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Schedule */}
+      <div>
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-muted)" }}>{tRoutines("schedule")}</p>
+        <div className="flex gap-1.5 mb-2">
+          {(["daily", "weekdays", "custom"] as const).map((s) => (
+            <button key={s} type="button" onClick={() => setSchedule(s)} className="flex-1 py-1.5 text-xs font-semibold rounded-lg cursor-pointer" style={{ backgroundColor: schedule === s ? "var(--color-primary)" : "rgba(255,255,255,0.06)", color: schedule === s ? "#fff" : "var(--color-text-muted)" }}>
+              {tRoutines(`schedule${s.charAt(0).toUpperCase() + s.slice(1)}` as "scheduleDaily" | "scheduleWeekdays" | "scheduleCustom")}
+            </button>
+          ))}
+        </div>
+        {schedule === "custom" && (
+          <div className="flex gap-1">
+            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((label, i) => {
+              const jsDay = i === 6 ? 0 : i + 1;
+              return (
+                <button key={jsDay} type="button" onClick={() => setCustomDays((prev) => prev.includes(jsDay) ? prev.filter((d) => d !== jsDay) : [...prev, jsDay])} className="w-9 h-9 rounded-lg text-xs font-bold cursor-pointer" style={{ backgroundColor: customDays.includes(jsDay) ? "var(--color-primary)" : "rgba(255,255,255,0.06)", color: customDays.includes(jsDay) ? "#fff" : "var(--color-text-muted)" }}>
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
+      </div>
+
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
         </button>
         <button type="submit" disabled={saving || !title.trim()} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer disabled:opacity-50" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
-          {saving ? "..." : "Save"}
+          {saving ? "..." : tRoutines("save")}
         </button>
       </div>
     </form>
