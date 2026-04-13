@@ -170,6 +170,7 @@ async function getFamilyData(locale: string) {
       title: r.title,
       icon: r.icon,
       cost: r.cost,
+      assignedTo: r.assignedTo ?? null,
       redemptions: r.redemptions,
     })),
     todayCompletedTaskIds,

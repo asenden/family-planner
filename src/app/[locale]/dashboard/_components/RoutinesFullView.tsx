@@ -28,6 +28,7 @@ interface Reward {
   title: string;
   icon: string;
   cost: number;
+  assignedTo: string | null;
   redemptions: { id: string; memberId: string }[];
 }
 
@@ -321,6 +322,9 @@ export function RoutinesFullView({
             ) : (
               children.map((child) => {
                 const childPoints = pointsMap[child.id] ?? 0;
+                const childRewards = rewards.filter(
+                  (r) => r.assignedTo === child.id || r.assignedTo === null
+                );
 
                 return (
                   <div key={child.id} className="space-y-2">
@@ -347,7 +351,7 @@ export function RoutinesFullView({
                       style={{ borderRadius: "var(--border-radius)" }}
                     >
                       <div className="flex flex-wrap gap-4">
-                        {rewards.map((reward) => {
+                        {childRewards.map((reward) => {
                           const canAfford = childPoints >= reward.cost;
                           const pct = Math.min(100, Math.round((childPoints / reward.cost) * 100));
                           const rewardColor = canAfford ? "#f59e0b" : "#a78bfa";

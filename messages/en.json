@@ -200,6 +200,8 @@
     "rewardTitle": "Reward Name",
     "rewardIcon": "Icon",
     "rewardCost": "Point Cost",
+    "allChildren": "All Children",
+    "assignReward": "For",
     "confirmDelete": "Delete this?",
     "days": {
       "0": "Sun",

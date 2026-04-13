@@ -55,6 +55,7 @@ interface Reward {
   title: string;
   icon: string;
   cost: number;
+  assignedTo: string | null;
   redemptions: { id: string; memberId: string }[];
 }
 
@@ -699,6 +700,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                   {showAddReward && (
                     <AddRewardForm
                       familyId={familyId}
+                      members={children}
                       onClose={() => setShowAddReward(false)}
                       onAdded={(reward) => {
                         setRewards((prev) => [...prev, reward]);
@@ -711,6 +713,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                   {editingReward && (
                     <EditRewardForm
                       familyId={familyId}
+                      members={children}
                       reward={editingReward}
                       onClose={() => setEditingReward(null)}
                       onUpdated={(updated) => {
@@ -1434,10 +1437,12 @@ function EditTaskForm({
 
 function AddRewardForm({
   familyId,
+  members,
   onClose,
   onAdded,
 }: {
   familyId: string;
+  members: FamilyMember[];
   onClose: () => void;
   onAdded: (reward: Reward) => void;
 }) {
@@ -1445,6 +1450,7 @@ function AddRewardForm({
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("🏆");
   const [cost, setCost] = useState(50);
+  const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1455,7 +1461,7 @@ function AddRewardForm({
       const res = await fetch(`/api/families/${familyId}/rewards`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, icon, cost }),
+        body: JSON.stringify({ title, icon, cost, assignedTo }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -1500,6 +1506,22 @@ function AddRewardForm({
           required
         />
       </div>
+      {members.length > 0 && (
+        <div className="flex items-center gap-2">
+          <label className="text-xs" style={{ color: "var(--color-text-muted)" }}>{tRoutines("assignReward")}</label>
+          <select
+            value={assignedTo ?? ""}
+            onChange={(e) => setAssignedTo(e.target.value || null)}
+            className="flex-1 rounded-xl px-3 py-2 text-sm"
+            style={inputStyle}
+          >
+            <option value="">{tRoutines("allChildren")}</option>
+            {members.map((m) => (
+              <option key={m.id} value={m.id}>{m.name}</option>
+            ))}
+          </select>
+        </div>
+      )}
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
@@ -1515,11 +1537,13 @@ function AddRewardForm({
 
 function EditRewardForm({
   familyId,
+  members,
   reward,
   onClose,
   onUpdated,
 }: {
   familyId: string;
+  members: FamilyMember[];
   reward: Reward;
   onClose: () => void;
   onUpdated: (reward: Reward) => void;
@@ -1528,6 +1552,7 @@ function EditRewardForm({
   const [title, setTitle] = useState(reward.title);
   const [icon, setIcon] = useState(reward.icon);
   const [cost, setCost] = useState(reward.cost);
+  const [assignedTo, setAssignedTo] = useState<string | null>(reward.assignedTo);
   const [saving, setSaving] = useState(false);
 
   async function handleSave(e: React.FormEvent) {
@@ -1538,7 +1563,7 @@ function EditRewardForm({
       const res = await fetch(`/api/families/${familyId}/rewards/${reward.id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ title, icon, cost }),
+        body: JSON.stringify({ title, icon, cost, assignedTo }),
       });
       if (res.ok) {
         const data = await res.json();
@@ -1569,6 +1594,23 @@ function EditRewardForm({
             <input type="number" value={cost} onChange={(e) => setCost(Number(e.target.value))} min={1} className="w-20 rounded-xl px-3 py-2 text-sm" style={inputStyle} />
             <span className="text-xs" style={{ color: "#f59e0b" }}>pts</span>
           </div>
+
+          {members.length > 0 && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs" style={{ color: "var(--color-text-muted)" }}>{tRoutines("assignReward")}</label>
+              <select
+                value={assignedTo ?? ""}
+                onChange={(e) => setAssignedTo(e.target.value || null)}
+                className="flex-1 rounded-xl px-3 py-2 text-sm"
+                style={inputStyle}
+              >
+                <option value="">{tRoutines("allChildren")}</option>
+                {members.map((m) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>

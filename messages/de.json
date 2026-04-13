@@ -200,6 +200,8 @@
     "rewardTitle": "Belohnungsname",
     "rewardIcon": "Symbol",
     "rewardCost": "Punktekosten",
+    "allChildren": "Alle Kinder",
+    "assignReward": "Für",
     "confirmDelete": "Löschen?",
     "days": {
       "0": "So",

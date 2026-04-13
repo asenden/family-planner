@@ -14,7 +14,7 @@ export async function PUT(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { title, icon, cost } = body;
+  const { title, icon, cost, assignedTo } = body;
 
   if (!title || !icon || cost === undefined) {
     return NextResponse.json(
@@ -30,9 +30,11 @@ export async function PUT(
         title: title as string,
         icon: icon as string,
         cost: cost as number,
+        assignedTo: assignedTo === undefined ? undefined : (assignedTo as string | null),
       },
       include: {
         redemptions: { select: { id: true, memberId: true, redeemedAt: true } },
+        member: { select: { name: true, color: true } },
       },
     });
 

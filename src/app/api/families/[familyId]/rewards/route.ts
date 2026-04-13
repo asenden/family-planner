@@ -12,11 +12,12 @@ export async function GET(
       where: { familyId },
       include: {
         redemptions: { select: { id: true, memberId: true, redeemedAt: true } },
+        member: { select: { name: true, color: true } },
       },
       orderBy: { cost: "asc" },
     });
 
-    return NextResponse.json({ rewards });
+    return NextResponse.json({ rewards: rewards.map((r) => ({ ...r, assignedTo: r.assignedTo ?? null })) });
   } catch (error) {
     console.error("Failed to fetch rewards:", error);
     return NextResponse.json({ error: "Failed to fetch rewards" }, { status: 500 });
@@ -36,7 +37,7 @@ export async function POST(
     return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
   }
 
-  const { title, icon, cost } = body;
+  const { title, icon, cost, assignedTo } = body;
 
   if (!title || !icon || cost === undefined) {
     return NextResponse.json(
@@ -56,9 +57,11 @@ export async function POST(
         icon: icon as string,
         cost: cost as number,
         familyId,
+        ...(assignedTo ? { assignedTo: assignedTo as string } : {}),
       },
       include: {
         redemptions: { select: { id: true, memberId: true, redeemedAt: true } },
+        member: { select: { name: true, color: true } },
       },
     });
 

@@ -47,6 +47,7 @@ model FamilyMember {
   calendarAccounts   CalendarAccount[]
   routines           Routine[]
   routineCompletions RoutineCompletion[]
+  assignedRewards    Reward[]             @relation("RewardAssignee")
   rewardRedemptions  RewardRedemption[]
   feelingCheckins    FeelingCheckin[]
   pinboardMessages   PinboardMessage[]
@@ -174,6 +175,9 @@ model Reward {
   title String
   icon  String
   cost  Int
+
+  assignedTo String?
+  member     FamilyMember?      @relation("RewardAssignee", fields: [assignedTo], references: [id], onDelete: SetNull)
 
   familyId    String
   family      Family             @relation(fields: [familyId], references: [id], onDelete: Cascade)
