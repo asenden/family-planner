@@ -2,10 +2,12 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { ListChecks, Pin, UtensilsCrossed, Heart, Images } from "lucide-react";
+import { Pin, UtensilsCrossed, Heart, Images } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { CalendarWidget } from "./CalendarWidget";
 import { CalendarFullView } from "./CalendarFullView";
+import { RoutinesWidget } from "./RoutinesWidget";
+import { RoutinesFullView } from "./RoutinesFullView";
 
 interface CalendarEvent {
   id: string;
@@ -21,15 +23,28 @@ interface FamilyMember {
   id: string;
   name: string;
   color: string;
+  role?: string;
 }
 
 interface WidgetGridProps {
   calendarEvents?: CalendarEvent[];
   familyMembers?: FamilyMember[];
   familyId?: string;
+  routines?: any[];
+  rewards?: any[];
+  todayCompletedTaskIds?: string[];
+  pointsMap?: Record<string, number>;
 }
 
-export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }: WidgetGridProps) {
+export function WidgetGrid({
+  calendarEvents = [],
+  familyMembers = [],
+  familyId,
+  routines = [],
+  rewards = [],
+  todayCompletedTaskIds = [],
+  pointsMap = {},
+}: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
   const [calendarInitialDate, setCalendarInitialDate] = useState<Date | undefined>();
@@ -41,6 +56,20 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
         events={calendarEvents}
         members={familyMembers}
         initialDate={calendarInitialDate}
+        onBack={() => setFullView(null)}
+      />
+    );
+  }
+
+  if (fullView === "routines" && familyId) {
+    return (
+      <RoutinesFullView
+        familyId={familyId}
+        routines={routines}
+        rewards={rewards}
+        members={familyMembers as any[]}
+        pointsMap={pointsMap}
+        initialCompletedTaskIds={todayCompletedTaskIds}
         onBack={() => setFullView(null)}
       />
     );
@@ -60,14 +89,13 @@ export function WidgetGrid({ calendarEvents = [], familyMembers = [], familyId }
         }}
       />
 
-      <WidgetCard
-        title={t("widgets.routines")}
-        icon={<ListChecks size={20} strokeWidth={1.8} />}
-        color="#f59e0b"
-        delay={100}
-      >
-        <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
-      </WidgetCard>
+      <RoutinesWidget
+        routines={routines}
+        completedTaskIds={todayCompletedTaskIds}
+        pointsMap={pointsMap}
+        members={familyMembers as any[]}
+        onTap={() => setFullView("routines")}
+      />
 
       <WidgetCard
         title={t("widgets.pinboard")}

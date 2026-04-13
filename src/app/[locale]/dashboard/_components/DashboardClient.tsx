@@ -25,6 +25,7 @@ interface FamilyMember {
   name: string;
   color: string;
   avatar?: string | null;
+  role: string;
 }
 
 interface DashboardClientProps {
@@ -34,9 +35,13 @@ interface DashboardClientProps {
   familyMembers: FamilyMember[];
   weather?: WeatherData | null;
   city?: string | null;
+  routines: any[];
+  rewards: any[];
+  todayCompletedTaskIds: string[];
+  pointsMap: Record<string, number>;
 }
 
-export function DashboardClient({ familyId, familyCode, calendarEvents, familyMembers, weather, city }: DashboardClientProps) {
+export function DashboardClient({ familyId, familyCode, calendarEvents, familyMembers, weather, city, routines, rewards, todayCompletedTaskIds, pointsMap }: DashboardClientProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
 
@@ -49,7 +54,15 @@ export function DashboardClient({ familyId, familyCode, calendarEvents, familyMe
       />
       <div className="flex-1 flex items-center">
         <div className="w-full">
-          <WidgetGrid calendarEvents={calendarEvents} familyMembers={familyMembers} familyId={familyId} />
+          <WidgetGrid
+            calendarEvents={calendarEvents}
+            familyMembers={familyMembers}
+            familyId={familyId}
+            routines={routines}
+            rewards={rewards}
+            todayCompletedTaskIds={todayCompletedTaskIds}
+            pointsMap={pointsMap}
+          />
         </div>
       </div>
       <IdleScreensaver />

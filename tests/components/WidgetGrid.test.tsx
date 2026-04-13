@@ -15,6 +15,13 @@ vi.mock("next-intl", () => ({
         noEvents: "Keine Termine",
         allDay: "Ganztägig",
       },
+      routines: {
+        title: "Routinen",
+        noRoutines: "Keine Routinen",
+        noTasksToday: "Keine Aufgaben heute",
+        taskProgress: "Fortschritt",
+        tasksComplete: "Alle erledigt",
+      },
     };
     return maps[namespace]?.[key] ?? key;
   },
@@ -23,7 +30,16 @@ vi.mock("next-intl", () => ({
 
 describe("WidgetGrid", () => {
   it("renders all 6 widgets", () => {
-    render(<WidgetGrid calendarEvents={[]} familyMembers={[]} />);
+    render(
+      <WidgetGrid
+        calendarEvents={[]}
+        familyMembers={[]}
+        routines={[]}
+        rewards={[]}
+        todayCompletedTaskIds={[]}
+        pointsMap={{}}
+      />
+    );
     expect(screen.getByText("Kalender")).toBeInTheDocument();
     expect(screen.getByText("Routinen")).toBeInTheDocument();
     expect(screen.getByText("Pinnwand")).toBeInTheDocument();
@@ -33,7 +49,16 @@ describe("WidgetGrid", () => {
   });
 
   it("uses a 3-column grid layout", () => {
-    const { container } = render(<WidgetGrid calendarEvents={[]} familyMembers={[]} />);
+    const { container } = render(
+      <WidgetGrid
+        calendarEvents={[]}
+        familyMembers={[]}
+        routines={[]}
+        rewards={[]}
+        todayCompletedTaskIds={[]}
+        pointsMap={{}}
+      />
+    );
     const grid = container.firstChild as HTMLElement;
     expect(grid.className).toContain("grid");
     expect(grid.className).toContain("grid-cols-3");

@@ -16,7 +16,7 @@ async function getFamilyData(locale: string) {
   const family = await db.family.findUnique({
     where: { inviteCode: familyCode },
     include: {
-      members: { select: { id: true, name: true, color: true, avatar: true }, orderBy: { createdAt: "asc" } },
+      members: { select: { id: true, name: true, color: true, avatar: true, role: true }, orderBy: { createdAt: "asc" } },
     },
   });
 
@@ -74,6 +74,65 @@ async function getFamilyData(locale: string) {
     ninetyDaysAhead
   );
 
+  // Fetch routines with tasks for this family
+  const routines = await db.routine.findMany({
+    where: { familyId: family.id },
+    include: {
+      tasks: { orderBy: { order: "asc" } },
+      member: { select: { id: true, name: true, color: true } },
+    },
+    orderBy: { createdAt: "asc" },
+  });
+
+  // Fetch today's completions
+  const today = new Date();
+  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const completions = await db.routineCompletion.findMany({
+    where: {
+      memberId: { in: family.members.map((m) => m.id) },
+      date: todayStart,
+    },
+    select: { taskId: true },
+  });
+  const todayCompletedTaskIds = completions.map((c) => c.taskId);
+
+  // Fetch rewards
+  const rewards = await db.reward.findMany({
+    where: { familyId: family.id },
+    include: {
+      redemptions: { select: { id: true, memberId: true } },
+    },
+    orderBy: { cost: "asc" },
+  });
+
+  // Compute points per member
+  const memberIds = family.members.map((m) => m.id);
+
+  // Earned points: sum of task points for all completions
+  const allCompletions = await db.routineCompletion.findMany({
+    where: { memberId: { in: memberIds } },
+    include: { task: { select: { points: true } } },
+  });
+  const earned: Record<string, number> = {};
+  for (const c of allCompletions) {
+    earned[c.memberId] = (earned[c.memberId] ?? 0) + c.task.points;
+  }
+
+  // Spent points: sum of reward costs for all redemptions
+  const allRedemptions = await db.rewardRedemption.findMany({
+    where: { memberId: { in: memberIds } },
+    include: { reward: { select: { cost: true } } },
+  });
+  const spent: Record<string, number> = {};
+  for (const r of allRedemptions) {
+    spent[r.memberId] = (spent[r.memberId] ?? 0) + r.reward.cost;
+  }
+
+  const pointsMap: Record<string, number> = {};
+  for (const id of memberIds) {
+    pointsMap[id] = (earned[id] ?? 0) - (spent[id] ?? 0);
+  }
+
   let weather: WeatherData | null = null;
   if (family.latitude != null && family.longitude != null) {
     try {
@@ -90,6 +149,31 @@ async function getFamilyData(locale: string) {
     events: expandedEvents,
     weather,
     city: family.city ?? null,
+    routines: routines.map((r) => ({
+      id: r.id,
+      title: r.title,
+      icon: r.icon,
+      schedule: r.schedule,
+      customDays: r.customDays,
+      assignedTo: r.assignedTo,
+      member: r.member,
+      tasks: r.tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        icon: t.icon,
+        points: t.points,
+        order: t.order,
+      })),
+    })),
+    rewards: rewards.map((r) => ({
+      id: r.id,
+      title: r.title,
+      icon: r.icon,
+      cost: r.cost,
+      redemptions: r.redemptions,
+    })),
+    todayCompletedTaskIds,
+    pointsMap,
   };
 }
 
@@ -111,6 +195,10 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       familyMembers={familyData.members}
       weather={familyData.weather}
       city={familyData.city}
+      routines={familyData.routines}
+      rewards={familyData.rewards}
+      todayCompletedTaskIds={familyData.todayCompletedTaskIds}
+      pointsMap={familyData.pointsMap}
     />
   );
 }
