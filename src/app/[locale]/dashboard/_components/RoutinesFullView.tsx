@@ -215,11 +215,41 @@ export function RoutinesFullView({
               </div>
             )}
             {children.map((child) => {
-              // Collect today's tasks for this child across scheduled routines (flat)
-              const allTasks = routines
-                .filter((r) => r.assignedTo === child.id && isScheduledToday(r))
-                .flatMap((r) => r.tasks);
+              const todayRoutines = routines.filter(
+                (r) => r.assignedTo === child.id && isScheduledToday(r)
+              );
               const childPoints = pointsMap[child.id] ?? 0;
+
+              // Build time slot sections
+              const TIME_SLOTS_FULL = [
+                { key: "morning", icon: "🌅", title: "Morgens", label: t("morning") },
+                { key: "daytime", icon: "☀️", title: "Tagsüber", label: t("daytime") },
+                { key: "evening", icon: "🌙", title: "Abends", label: t("evening") },
+              ] as const;
+
+              type SectionEntry = {
+                key: string;
+                icon: string;
+                label: string;
+                tasks: RoutineTask[];
+                memberId: string;
+              };
+
+              const sections: SectionEntry[] = TIME_SLOTS_FULL.map((slot) => {
+                const slotRoutines = todayRoutines.filter((r) => r.title === slot.title);
+                const tasks = slotRoutines.flatMap((r) => r.tasks);
+                return { key: slot.key, icon: slot.icon, label: slot.label, tasks, memberId: child.id };
+              }).filter((s) => s.tasks.length > 0);
+
+              // Other tasks (routines not matching a time slot)
+              const otherTasks = todayRoutines
+                .filter((r) => !TIME_SLOTS_FULL.some((s) => s.title === r.title))
+                .flatMap((r) => r.tasks);
+              if (otherTasks.length > 0) {
+                sections.push({ key: "other", icon: "📋", label: "Other", tasks: otherTasks, memberId: child.id });
+              }
+
+              const allTasks = sections.flatMap((s) => s.tasks);
 
               return (
                 <div key={child.id} className="space-y-2">
@@ -253,58 +283,78 @@ export function RoutinesFullView({
                     </div>
                   ) : (
                     <div
-                      className="glass p-4 space-y-1"
+                      className="glass p-4 space-y-4"
                       style={{ borderRadius: "var(--border-radius)" }}
                     >
-                      {allTasks.map((task) => {
-                        const done = completedIds.has(task.id);
-                        const pending = pendingTasks.has(task.id);
-                        const flashing = flashTaskId === task.id;
-
-                        return (
-                          <button
-                            key={task.id}
-                            disabled={pending}
-                            onClick={() => toggleTask(task.id, child.id, task)}
-                            className="flex items-center gap-3 w-full text-left px-2 py-2.5 rounded-xl transition-all cursor-pointer"
-                            style={{
-                              backgroundColor: done ? "rgba(167,139,250,0.08)" : "rgba(255,255,255,0.03)",
-                              opacity: pending ? 0.6 : 1,
-                              animation: flashing ? "task-complete 0.5s ease" : undefined,
-                            }}
+                      {sections.map((section) => (
+                        <div key={section.key}>
+                          {/* Section header */}
+                          <div
+                            className="flex items-center gap-1.5 mb-2 pb-1"
+                            style={{ borderBottom: "1px solid rgba(255,255,255,0.07)" }}
                           >
-                            {done ? (
-                              <CheckSquare
-                                size={20}
-                                strokeWidth={1.5}
-                                style={{ color: "var(--color-primary)", flexShrink: 0 }}
-                              />
-                            ) : (
-                              <Square
-                                size={20}
-                                strokeWidth={1.5}
-                                style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
-                              />
-                            )}
-                            <span className="text-lg leading-none" aria-hidden="true">{task.icon}</span>
+                            <span className="text-sm leading-none" aria-hidden="true">{section.icon}</span>
                             <span
-                              className="flex-1 text-sm font-medium"
-                              style={{
-                                color: done ? "var(--color-text-muted)" : "var(--color-text)",
-                                textDecoration: done ? "line-through" : "none",
-                              }}
+                              className="text-[10px] font-bold uppercase tracking-[0.15em]"
+                              style={{ color: "var(--color-text-muted)" }}
                             >
-                              {task.title}
+                              {section.label}
                             </span>
-                            <span
-                              className="text-[11px] font-bold tabular-nums"
-                              style={{ color: done ? "var(--color-primary)" : "#f59e0b" }}
-                            >
-                              +{task.points}
-                            </span>
-                          </button>
-                        );
-                      })}
+                          </div>
+                          {/* Tasks */}
+                          <div className="space-y-1">
+                            {section.tasks.map((task) => {
+                              const done = completedIds.has(task.id);
+                              const pending = pendingTasks.has(task.id);
+                              const flashing = flashTaskId === task.id;
+
+                              return (
+                                <button
+                                  key={task.id}
+                                  disabled={pending}
+                                  onClick={() => toggleTask(task.id, child.id, task)}
+                                  className="flex items-center gap-3 w-full text-left px-2 py-2.5 rounded-xl transition-all cursor-pointer"
+                                  style={{
+                                    backgroundColor: done ? "rgba(167,139,250,0.08)" : "rgba(255,255,255,0.03)",
+                                    opacity: pending ? 0.6 : 1,
+                                    animation: flashing ? "task-complete 0.5s ease" : undefined,
+                                  }}
+                                >
+                                  {done ? (
+                                    <CheckSquare
+                                      size={20}
+                                      strokeWidth={1.5}
+                                      style={{ color: "var(--color-primary)", flexShrink: 0 }}
+                                    />
+                                  ) : (
+                                    <Square
+                                      size={20}
+                                      strokeWidth={1.5}
+                                      style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+                                    />
+                                  )}
+                                  <span className="text-lg leading-none" aria-hidden="true">{task.icon}</span>
+                                  <span
+                                    className="flex-1 text-sm font-medium"
+                                    style={{
+                                      color: done ? "var(--color-text-muted)" : "var(--color-text)",
+                                      textDecoration: done ? "line-through" : "none",
+                                    }}
+                                  >
+                                    {task.title}
+                                  </span>
+                                  <span
+                                    className="text-[11px] font-bold tabular-nums"
+                                    style={{ color: done ? "var(--color-primary)" : "#f59e0b" }}
+                                  >
+                                    +{task.points}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   )}
                 </div>

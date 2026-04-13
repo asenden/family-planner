@@ -4,7 +4,13 @@ import { useTranslations } from "next-intl";
 import { ListChecks, Star, CheckCircle2, Circle } from "lucide-react";
 
 const WIDGET_COLOR = "#f59e0b";
-const MAX_TASKS_SHOWN = 5;
+const MAX_TASKS_SHOWN = 4;
+
+const TIME_SLOTS = [
+  { key: "morning", icon: "🌅", title: "Morgens" },
+  { key: "daytime", icon: "☀️", title: "Tagsüber" },
+  { key: "evening", icon: "🌙", title: "Abends" },
+] as const;
 
 interface RoutineTask {
   id: string;
@@ -51,21 +57,55 @@ export function RoutinesWidget({
 
   const children = members.filter((m) => m.role === "child");
 
-  // Collect all today's tasks per child (flat, from all routines)
+  type SlotInfo = { key: string; icon: string; title: string };
+  type GroupEntry = { slot: SlotInfo; tasks: RoutineTask[]; unfinished: RoutineTask[] };
+
+  // Per child: group tasks by time slot, find first group with unfinished tasks
   const childData = children.map((child) => {
-    const todayTasks = routines
-      .filter((r) => r.assignedTo === child.id && isScheduledToday(r))
-      .flatMap((r) => r.tasks);
+    const todayRoutines = routines.filter(
+      (r) => r.assignedTo === child.id && isScheduledToday(r)
+    );
+
+    // Group by time slot
+    const groups: GroupEntry[] = TIME_SLOTS.map((slot) => {
+      const slotRoutines = todayRoutines.filter((r) => r.title === slot.title);
+      const tasks = slotRoutines.flatMap((r) => r.tasks);
+      const unfinished = tasks.filter((t) => !completedTaskIds.includes(t.id));
+      return { slot, tasks, unfinished };
+    });
+
+    // Also collect tasks from routines that don't match a time slot
+    const otherRoutines = todayRoutines.filter(
+      (r) => !TIME_SLOTS.some((s) => s.title === r.title)
+    );
+    const otherTasks = otherRoutines.flatMap((r) => r.tasks);
+    const otherUnfinished = otherTasks.filter((t) => !completedTaskIds.includes(t.id));
+    if (otherTasks.length > 0) {
+      groups.push({
+        slot: { key: "other", icon: "📋", title: "Other" },
+        tasks: otherTasks,
+        unfinished: otherUnfinished,
+      });
+    }
+
+    const totalTasks = groups.reduce((s, g) => s + g.tasks.length, 0);
+    const allDone = totalTasks > 0 && groups.every((g) => g.unfinished.length === 0);
+
+    // First group with unfinished tasks
+    const activeGroup = groups.find((g) => g.unfinished.length > 0) ?? null;
+
     return {
       id: child.id,
       name: child.name,
       color: child.color,
-      tasks: todayTasks,
       points: pointsMap[child.id] ?? 0,
+      totalTasks,
+      allDone,
+      activeGroup,
     };
   });
 
-  const hasAnyTasks = childData.some((c) => c.tasks.length > 0);
+  const hasAnyTasks = childData.some((c) => c.totalTasks > 0);
 
   return (
     <button
@@ -99,11 +139,8 @@ export function RoutinesWidget({
           </p>
         ) : (
           childData
-            .filter((c) => c.tasks.length > 0)
+            .filter((c) => c.totalTasks > 0)
             .map((child) => {
-              const shown = child.tasks.slice(0, MAX_TASKS_SHOWN);
-              const remaining = child.tasks.length - shown.length;
-
               return (
                 <div key={child.id} className="space-y-1.5">
                   {/* Child name + points */}
@@ -125,47 +162,57 @@ export function RoutinesWidget({
                     </div>
                   </div>
 
-                  {/* Mini task checklist */}
-                  <div className="space-y-1">
-                    {shown.map((task) => {
-                      const done = completedTaskIds.includes(task.id);
-                      return (
-                        <div
-                          key={task.id}
-                          className="flex items-center gap-2 px-1"
-                        >
-                          {done ? (
-                            <CheckCircle2
-                              size={13}
-                              strokeWidth={2}
-                              style={{ color: "var(--color-primary)", flexShrink: 0 }}
-                            />
-                          ) : (
-                            <Circle
-                              size={13}
-                              strokeWidth={1.5}
-                              style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
-                            />
-                          )}
-                          <span className="text-[11px] leading-none" aria-hidden="true">{task.icon}</span>
-                          <span
-                            className="text-[12px] flex-1 truncate"
-                            style={{
-                              color: done ? "var(--color-text-muted)" : "var(--color-text)",
-                              textDecoration: done ? "line-through" : "none",
-                            }}
-                          >
-                            {task.title}
-                          </span>
-                        </div>
-                      );
-                    })}
-                    {remaining > 0 && (
-                      <p className="text-[10px] pl-5" style={{ color: "var(--color-text-muted)" }}>
-                        +{remaining} more
+                  {child.allDone ? (
+                    <p className="text-[12px] font-semibold pl-1" style={{ color: "var(--color-primary)" }}>
+                      {t("allDone")}
+                    </p>
+                  ) : child.activeGroup ? (
+                    <div className="space-y-1">
+                      {/* Group header */}
+                      <p className="text-[10px] font-bold uppercase tracking-wider px-1 mb-1" style={{ color: "var(--color-text-muted)" }}>
+                        {child.activeGroup.slot.icon} {child.activeGroup.slot.title}
                       </p>
-                    )}
-                  </div>
+                      {/* Tasks */}
+                      {child.activeGroup.tasks.slice(0, MAX_TASKS_SHOWN).map((task) => {
+                        const done = completedTaskIds.includes(task.id);
+                        return (
+                          <div
+                            key={task.id}
+                            className="flex items-center gap-2 px-1"
+                          >
+                            {done ? (
+                              <CheckCircle2
+                                size={13}
+                                strokeWidth={2}
+                                style={{ color: "var(--color-primary)", flexShrink: 0 }}
+                              />
+                            ) : (
+                              <Circle
+                                size={13}
+                                strokeWidth={1.5}
+                                style={{ color: "var(--color-text-muted)", flexShrink: 0 }}
+                              />
+                            )}
+                            <span className="text-[11px] leading-none" aria-hidden="true">{task.icon}</span>
+                            <span
+                              className="text-[12px] flex-1 truncate"
+                              style={{
+                                color: done ? "var(--color-text-muted)" : "var(--color-text)",
+                                textDecoration: done ? "line-through" : "none",
+                              }}
+                            >
+                              {task.title}
+                            </span>
+                          </div>
+                        );
+                      })}
+                      {child.activeGroup.tasks.length > MAX_TASKS_SHOWN && (
+                        <p className="text-[10px] pl-5" style={{ color: "var(--color-text-muted)" }}>
+                          +{child.activeGroup.tasks.length - MAX_TASKS_SHOWN} more
+                        </p>
+                      )}
+                    </div>
+                  ) : null}
                 </div>
               );
             })

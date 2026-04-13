@@ -211,6 +211,11 @@
       "4": "Thu",
       "5": "Fri",
       "6": "Sat"
-    }
+    },
+    "timeOfDay": "Time of Day",
+    "morning": "Morning",
+    "daytime": "Daytime",
+    "evening": "Evening",
+    "allDone": "All done! 🎉"
   }
 }

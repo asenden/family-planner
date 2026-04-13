@@ -518,9 +518,10 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                       (() => {
                         const activeChild = children.find((c) => c.id === selectedChildId) ?? children[0];
                         if (!activeChild) return null;
+                        const TIME_SLOT_ICONS: Record<string, string> = { "Morgens": "🌅", "Tagsüber": "☀️", "Abends": "🌙" };
                         const childRoutines = routines.filter((r) => r.assignedTo === activeChild.id);
                         const allTasks = childRoutines.flatMap((r) =>
-                          r.tasks.map((t) => ({ ...t, routineId: r.id, routineSchedule: r.schedule, routineCustomDays: r.customDays }))
+                          r.tasks.map((t) => ({ ...t, routineId: r.id, routineTitle: r.title, routineSchedule: r.schedule, routineCustomDays: r.customDays }))
                         );
 
                         return (
@@ -548,6 +549,9 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                                   style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
                                 >
                                   <span className="text-sm flex-1" style={{ color: "var(--color-text)" }}>
+                                    {TIME_SLOT_ICONS[task.routineTitle] && (
+                                      <span className="mr-1 opacity-70">{TIME_SLOT_ICONS[task.routineTitle]}</span>
+                                    )}
                                     {task.icon} {task.title}
                                     <span className="ml-1.5 text-xs" style={{ color: "#f59e0b" }}>+{task.points}</span>
                                     {task.routineSchedule === "weekdays" && (
@@ -1220,6 +1224,7 @@ function AddTaskForm({
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("✅");
   const [points, setPoints] = useState(1);
+  const [timeSlot, setTimeSlot] = useState<"morning" | "daytime" | "evening">("morning");
   const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">("daily");
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
@@ -1229,23 +1234,23 @@ function AddTaskForm({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      // Find or create a routine matching the selected schedule
+      const slotTitles = { morning: "Morgens", daytime: "Tagsüber", evening: "Abends" };
+      const routineTitle = slotTitles[timeSlot];
+
+      // Find or create a routine matching the selected time slot + schedule
       let routine = routines.find((r) =>
         r.assignedTo === memberId &&
+        r.title === routineTitle &&
         r.schedule === schedule &&
         (schedule !== "custom" || JSON.stringify([...r.customDays].sort()) === JSON.stringify([...customDays].sort()))
       );
       if (!routine) {
-        const routineTitle =
-          schedule === "daily" ? tRoutines("scheduleDaily") :
-          schedule === "weekdays" ? tRoutines("scheduleWeekdays") :
-          tRoutines("scheduleCustom");
         const res = await fetch(`/api/families/${familyId}/routines`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             title: routineTitle,
-            icon: "📋",
+            icon: timeSlot === "morning" ? "🌅" : timeSlot === "daytime" ? "☀️" : "🌙",
             schedule,
             customDays: schedule === "custom" ? customDays : [],
             assignedTo: memberId,
@@ -1299,6 +1304,32 @@ function AddTaskForm({
           className="w-16 rounded-xl px-3 py-2 text-sm text-center"
           style={inputStyle}
         />
+      </div>
+      {/* Time of day picker */}
+      <div>
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-muted)" }}>
+          {tRoutines("timeOfDay")}
+        </p>
+        <div className="flex gap-1.5">
+          {[
+            { key: "morning" as const, icon: "🌅", label: tRoutines("morning") },
+            { key: "daytime" as const, icon: "☀️", label: tRoutines("daytime") },
+            { key: "evening" as const, icon: "🌙", label: tRoutines("evening") },
+          ].map((slot) => (
+            <button
+              key={slot.key}
+              type="button"
+              onClick={() => setTimeSlot(slot.key)}
+              className="flex-1 py-2 text-xs font-semibold rounded-lg cursor-pointer flex items-center justify-center gap-1.5"
+              style={{
+                backgroundColor: timeSlot === slot.key ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
+                color: timeSlot === slot.key ? "#fff" : "var(--color-text-muted)",
+              }}
+            >
+              <span>{slot.icon}</span> {slot.label}
+            </button>
+          ))}
+        </div>
       </div>
       {/* Schedule picker */}
       <div>

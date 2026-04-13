@@ -211,6 +211,11 @@
       "4": "Do",
       "5": "Fr",
       "6": "Sa"
-    }
+    },
+    "timeOfDay": "Tageszeit",
+    "morning": "Morgens",
+    "daytime": "Tagsüber",
+    "evening": "Abends",
+    "allDone": "Alles erledigt! 🎉"
   }
 }
