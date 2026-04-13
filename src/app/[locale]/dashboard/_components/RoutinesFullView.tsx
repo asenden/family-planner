@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { CheckSquare, Square, Trophy, ChevronLeft, Star } from "lucide-react";
 import { ThermometerBar } from "./ThermometerBar";
 import { useGamification } from "./GamificationProvider";
@@ -88,6 +89,8 @@ export function RoutinesFullView({
   streakMap = {},
 }: RoutinesFullViewProps) {
   const t = useTranslations("routines");
+  const router = useRouter();
+  const dirty = useRef(false);
   const { triggerCriticalHit, triggerMysterySpin, triggerPerfectDay, triggerStreakMilestone } = useGamification();
   const [tab, setTab] = useState<Tab>("tasks");
   const [completedIds, setCompletedIds] = useState<Set<string>>(
@@ -105,6 +108,7 @@ export function RoutinesFullView({
   const toggleTask = useCallback(async (taskId: string, memberId: string, task: RoutineTask) => {
     if (pendingTasks.has(taskId)) return;
 
+    dirty.current = true;
     const wasCompleted = completedIds.has(taskId);
     const nowCompleted = !wasCompleted;
 
@@ -204,7 +208,7 @@ export function RoutinesFullView({
         style={{ borderRadius: "var(--border-radius)" }}
       >
         <button
-          onClick={onBack}
+          onClick={() => { if (dirty.current) router.refresh(); onBack(); }}
           className="flex items-center gap-2 cursor-pointer transition-opacity hover:opacity-70"
           style={{ color: "var(--color-text-muted)" }}
         >

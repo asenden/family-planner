@@ -16,7 +16,9 @@
       "Bash(mkdir -p /Users/asenden/Projekte/FamilyDisplay/src/app/api/families/\\\\[familyId\\\\]/points)",
       "Bash(git init:*)",
       "Bash(git config:*)",
-      "Bash(git:*)"
+      "Bash(git:*)",
+      "Bash(npx prisma:*)",
+      "Skill(commit-commands:commit)"
     ]
   }
 }

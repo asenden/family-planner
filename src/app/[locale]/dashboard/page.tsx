@@ -129,9 +129,19 @@ async function getFamilyData(locale: string) {
     spent[r.memberId] = (spent[r.memberId] ?? 0) + r.reward.cost;
   }
 
+  // Bonus points from gamification (critical hits, mystery spins, perfect days, milestones)
+  const allBonusLogs = await db.bonusLog.findMany({
+    where: { memberId: { in: memberIds } },
+    select: { memberId: true, points: true },
+  });
+  const bonus: Record<string, number> = {};
+  for (const b of allBonusLogs) {
+    bonus[b.memberId] = (bonus[b.memberId] ?? 0) + b.points;
+  }
+
   const pointsMap: Record<string, number> = {};
   for (const id of memberIds) {
-    pointsMap[id] = (earned[id] ?? 0) - (spent[id] ?? 0);
+    pointsMap[id] = (earned[id] ?? 0) + (bonus[id] ?? 0) - (spent[id] ?? 0);
   }
 
   // Fetch streaks for all members
