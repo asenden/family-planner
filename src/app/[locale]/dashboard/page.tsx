@@ -6,6 +6,7 @@ import { expandRecurringEvents } from "@/lib/calendar/expand-recurring";
 import { fetchWeather } from "@/lib/weather";
 import { syncCalendarAccount } from "@/lib/caldav/sync";
 import type { WeatherData } from "@/lib/weather";
+import { getStreakTier } from "@/lib/streaks";
 
 async function getFamilyData(locale: string) {
   const cookieStore = await cookies();
@@ -133,6 +134,31 @@ async function getFamilyData(locale: string) {
     pointsMap[id] = (earned[id] ?? 0) - (spent[id] ?? 0);
   }
 
+  // Fetch streaks for all members
+  const streaks = await db.streak.findMany({
+    where: { memberId: { in: family.members.map((m: any) => m.id) } },
+  });
+  const streakMap: Record<string, { current: number; longest: number; tier: string; multiplier: number; tierIcon: string; flameFrom: string; flameTo: string }> = {};
+  for (const s of streaks) {
+    const tier = getStreakTier(s.current);
+    streakMap[s.memberId] = {
+      current: s.current, longest: s.longest,
+      tier: tier.label, multiplier: tier.multiplier, tierIcon: tier.icon,
+      flameFrom: tier.flameFrom, flameTo: tier.flameTo,
+    };
+  }
+
+  // Check yesterday's perfect days
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  const yesterdayPerfects = await db.bonusLog.findMany({
+    where: { memberId: { in: family.members.map((m: any) => m.id) }, date: yesterdayStart, type: "perfect_day" },
+    select: { memberId: true },
+  });
+  const yesterdayPerfectMap: Record<string, boolean> = {};
+  for (const p of yesterdayPerfects) yesterdayPerfectMap[p.memberId] = true;
+
   let weather: WeatherData | null = null;
   if (family.latitude != null && family.longitude != null) {
     try {
@@ -175,6 +201,8 @@ async function getFamilyData(locale: string) {
     })),
     todayCompletedTaskIds,
     pointsMap,
+    streakMap,
+    yesterdayPerfectMap,
   };
 }
 
@@ -200,6 +228,8 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       rewards={familyData.rewards}
       todayCompletedTaskIds={familyData.todayCompletedTaskIds}
       pointsMap={familyData.pointsMap}
+      streakMap={familyData.streakMap}
+      yesterdayPerfectMap={familyData.yesterdayPerfectMap}
     />
   );
 }

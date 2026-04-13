@@ -26,6 +26,16 @@ interface FamilyMember {
   role?: string;
 }
 
+interface StreakInfo {
+  current: number;
+  longest: number;
+  tier: string;
+  multiplier: number;
+  tierIcon: string;
+  flameFrom: string;
+  flameTo: string;
+}
+
 interface WidgetGridProps {
   calendarEvents?: CalendarEvent[];
   familyMembers?: FamilyMember[];
@@ -34,6 +44,8 @@ interface WidgetGridProps {
   rewards?: any[];
   todayCompletedTaskIds?: string[];
   pointsMap?: Record<string, number>;
+  streakMap?: Record<string, StreakInfo>;
+  yesterdayPerfectMap?: Record<string, boolean>;
 }
 
 export function WidgetGrid({
@@ -44,6 +56,8 @@ export function WidgetGrid({
   rewards = [],
   todayCompletedTaskIds = [],
   pointsMap = {},
+  streakMap = {},
+  yesterdayPerfectMap = {},
 }: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
@@ -71,6 +85,7 @@ export function WidgetGrid({
         pointsMap={pointsMap}
         initialCompletedTaskIds={todayCompletedTaskIds}
         onBack={() => setFullView(null)}
+        streakMap={streakMap}
       />
     );
   }
@@ -95,6 +110,8 @@ export function WidgetGrid({
         pointsMap={pointsMap}
         members={familyMembers as any[]}
         onTap={() => setFullView("routines")}
+        streakMap={streakMap}
+        yesterdayPerfectMap={yesterdayPerfectMap}
       />
 
       <WidgetCard

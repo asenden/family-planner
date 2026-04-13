@@ -2,6 +2,8 @@
 
 import { useTranslations } from "next-intl";
 import { ListChecks, Star, CheckCircle2, Circle } from "lucide-react";
+import { StreakBadge } from "./StreakBadge";
+import { PerfectDayCrown } from "./PerfectDayCrown";
 
 const WIDGET_COLOR = "#f59e0b";
 const MAX_TASKS_SHOWN = 4;
@@ -30,12 +32,24 @@ interface Routine {
   tasks: RoutineTask[];
 }
 
+interface StreakInfo {
+  current: number;
+  longest: number;
+  tier: string;
+  multiplier: number;
+  tierIcon: string;
+  flameFrom: string;
+  flameTo: string;
+}
+
 interface RoutinesWidgetProps {
   routines: Routine[];
   completedTaskIds: string[];
   pointsMap: Record<string, number>;
   members: { id: string; name: string; color: string; role: string }[];
   onTap: () => void;
+  streakMap?: Record<string, StreakInfo>;
+  yesterdayPerfectMap?: Record<string, boolean>;
 }
 
 function isScheduledToday(routine: Routine): boolean {
@@ -52,6 +66,8 @@ export function RoutinesWidget({
   pointsMap,
   members,
   onTap,
+  streakMap = {},
+  yesterdayPerfectMap = {},
 }: RoutinesWidgetProps) {
   const t = useTranslations("routines");
 
@@ -153,6 +169,20 @@ export function RoutinesWidget({
                       <span className="text-[13px] font-semibold" style={{ color: "var(--color-text)" }}>
                         {child.name}
                       </span>
+                      {streakMap[child.id] && streakMap[child.id].current > 0 && (
+                        <StreakBadge
+                          current={streakMap[child.id].current}
+                          tier={streakMap[child.id].tier}
+                          multiplier={streakMap[child.id].multiplier}
+                          tierIcon={streakMap[child.id].tierIcon}
+                          flameFrom={streakMap[child.id].flameFrom}
+                          flameTo={streakMap[child.id].flameTo}
+                          compact
+                        />
+                      )}
+                      {yesterdayPerfectMap[child.id] && (
+                        <PerfectDayCrown show />
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Star size={11} strokeWidth={1.5} style={{ color: WIDGET_COLOR }} />

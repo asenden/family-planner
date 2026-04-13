@@ -38,6 +38,8 @@ describe("WidgetGrid", () => {
         rewards={[]}
         todayCompletedTaskIds={[]}
         pointsMap={{}}
+        streakMap={{}}
+        yesterdayPerfectMap={{}}
       />
     );
     expect(screen.getByText("Kalender")).toBeInTheDocument();

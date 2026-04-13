@@ -4,6 +4,8 @@ import { useState, useCallback } from "react";
 import { useTranslations } from "next-intl";
 import { CheckSquare, Square, Trophy, ChevronLeft, Star } from "lucide-react";
 import { ThermometerBar } from "./ThermometerBar";
+import { useGamification } from "./GamificationProvider";
+import { StreakBadge } from "./StreakBadge";
 
 interface RoutineTask {
   id: string;
@@ -39,6 +41,16 @@ interface Member {
   role: string;
 }
 
+interface StreakInfo {
+  current: number;
+  longest: number;
+  tier: string;
+  multiplier: number;
+  tierIcon: string;
+  flameFrom: string;
+  flameTo: string;
+}
+
 interface RoutinesFullViewProps {
   familyId: string;
   routines: Routine[];
@@ -47,6 +59,7 @@ interface RoutinesFullViewProps {
   pointsMap: Record<string, number>;
   initialCompletedTaskIds: string[];
   onBack: () => void;
+  streakMap?: Record<string, StreakInfo>;
 }
 
 type Tab = "tasks" | "goals";
@@ -72,8 +85,10 @@ export function RoutinesFullView({
   pointsMap: initialPointsMap,
   initialCompletedTaskIds,
   onBack,
+  streakMap = {},
 }: RoutinesFullViewProps) {
   const t = useTranslations("routines");
+  const { triggerCriticalHit, triggerMysterySpin, triggerPerfectDay, triggerStreakMilestone } = useGamification();
   const [tab, setTab] = useState<Tab>("tasks");
   const [completedIds, setCompletedIds] = useState<Set<string>>(
     new Set(initialCompletedTaskIds)
@@ -112,11 +127,34 @@ export function RoutinesFullView({
     }
 
     try {
-      await fetch(`/api/families/${familyId}/routine-completions`, {
+      const res = await fetch(`/api/families/${familyId}/routine-completions`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ taskId, memberId, date, completed: nowCompleted }),
       });
+
+      if (res.ok && nowCompleted) {
+        const resData = await res.json();
+
+        if (resData.criticalHit) {
+          triggerCriticalHit({ taskId, bonusPoints: resData.criticalBonusPoints });
+        }
+        if (resData.perfectDayBonus > 0) {
+          setTimeout(
+            () => triggerPerfectDay(resData.perfectDayBonus),
+            resData.criticalHit ? 2200 : 200
+          );
+        }
+        if (resData.mysterySpinResult) {
+          setTimeout(
+            () => triggerMysterySpin(resData.mysterySpinResult),
+            resData.perfectDayBonus > 0 ? 1500 : resData.criticalHit ? 2200 : 300
+          );
+        }
+        if (resData.milestoneHit) {
+          setTimeout(() => triggerStreakMilestone({ milestone: resData.milestoneHit }), 3000);
+        }
+      }
     } catch {
       // Rollback on error
       setCompletedIds((prev) => {
@@ -263,6 +301,17 @@ export function RoutinesFullView({
                       <span className="font-bold text-base" style={{ color: "var(--color-text)" }}>
                         {child.name}
                       </span>
+                      {streakMap[child.id] && streakMap[child.id].current > 0 && (
+                        <StreakBadge
+                          current={streakMap[child.id].current}
+                          tier={streakMap[child.id].tier}
+                          multiplier={streakMap[child.id].multiplier}
+                          tierIcon={streakMap[child.id].tierIcon}
+                          flameFrom={streakMap[child.id].flameFrom}
+                          flameTo={streakMap[child.id].flameTo}
+                          compact
+                        />
+                      )}
                     </div>
                     <div className="flex items-center gap-1">
                       <Star size={14} strokeWidth={1.5} style={{ color: "#f59e0b" }} />
