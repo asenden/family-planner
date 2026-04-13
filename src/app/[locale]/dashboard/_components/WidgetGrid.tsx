@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { UtensilsCrossed, Heart, Images } from "lucide-react";
+import { UtensilsCrossed, Images } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { CalendarWidget } from "./CalendarWidget";
 import { CalendarFullView } from "./CalendarFullView";
@@ -10,6 +10,8 @@ import { RoutinesWidget } from "./RoutinesWidget";
 import { RoutinesFullView } from "./RoutinesFullView";
 import { PinboardWidget, type PinboardMessage } from "./PinboardWidget";
 import { PinboardFullView } from "./PinboardFullView";
+import { FeelingsWidget } from "./FeelingsWidget";
+import { FeelingsFullView } from "./FeelingsFullView";
 
 interface CalendarEvent {
   id: string;
@@ -26,6 +28,14 @@ interface FamilyMember {
   name: string;
   color: string;
   role?: string;
+}
+
+interface FeelingCheckin {
+  id: string;
+  date: string;
+  feeling: "happy" | "neutral" | "sad" | "angry" | "excited";
+  note?: string | null;
+  member: { id: string; name: string; color: string };
 }
 
 interface StreakInfo {
@@ -49,6 +59,7 @@ interface WidgetGridProps {
   streakMap?: Record<string, StreakInfo>;
   yesterdayPerfectMap?: Record<string, boolean>;
   pinboardMessages?: PinboardMessage[];
+  feelingCheckins?: FeelingCheckin[];
 }
 
 export function WidgetGrid({
@@ -62,6 +73,7 @@ export function WidgetGrid({
   streakMap = {},
   yesterdayPerfectMap = {},
   pinboardMessages = [],
+  feelingCheckins = [],
 }: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
@@ -107,6 +119,17 @@ export function WidgetGrid({
     );
   }
 
+  if (fullView === "feelings" && familyId) {
+    return (
+      <FeelingsFullView
+        familyId={familyId}
+        members={familyMembers}
+        initialFeelings={feelingCheckins}
+        onBack={() => setFullView(null)}
+      />
+    );
+  }
+
   return (
     <div className="grid grid-cols-3 gap-4">
       <CalendarWidget
@@ -145,16 +168,19 @@ export function WidgetGrid({
         <p style={{ color: "var(--color-text-muted)" }}>{t("tapToOpen")}</p>
       </WidgetCard>
 
-      <WidgetCard
-        title={t("widgets.feelings")}
-        icon={<Heart size={20} strokeWidth={1.8} />}
-        color="#c084fc"
-        delay={250}
-      >
-        <div className="flex gap-3 text-2xl">
-          <span>😊</span><span>😐</span><span>😢</span><span>😠</span><span>🤩</span>
-        </div>
-      </WidgetCard>
+      <FeelingsWidget
+        members={familyMembers}
+        todayFeelings={feelingCheckins.filter((f) => {
+          const d = new Date(f.date);
+          const today = new Date();
+          return (
+            d.getFullYear() === today.getFullYear() &&
+            d.getMonth() === today.getMonth() &&
+            d.getDate() === today.getDate()
+          );
+        })}
+        onTap={() => setFullView("feelings")}
+      />
 
       <WidgetCard
         title={t("widgets.photos")}

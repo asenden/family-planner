@@ -26,6 +26,10 @@ vi.mock("next-intl", () => ({
         title: "Pinnwand",
         empty: "Noch keine Notizen",
       },
+      feelings: {
+        title: "Gefühle",
+        notCheckedIn: "Noch nicht",
+      },
     };
     return maps[namespace]?.[key] ?? key;
   },

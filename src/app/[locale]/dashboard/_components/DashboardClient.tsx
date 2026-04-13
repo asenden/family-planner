@@ -34,6 +34,14 @@ interface FamilyMember {
   role: string;
 }
 
+interface FeelingCheckin {
+  id: string;
+  date: string;
+  feeling: "happy" | "neutral" | "sad" | "angry" | "excited";
+  note?: string | null;
+  member: { id: string; name: string; color: string };
+}
+
 interface StreakInfo {
   current: number;
   longest: number;
@@ -57,6 +65,7 @@ interface DashboardClientProps {
   pointsMap: Record<string, number>;
   streakMap?: Record<string, StreakInfo>;
   yesterdayPerfectMap?: Record<string, boolean>;
+  feelingCheckins?: FeelingCheckin[];
   pinboardMessages?: PinboardMessage[];
 }
 
@@ -73,6 +82,7 @@ export function DashboardClient({
   pointsMap,
   streakMap = {},
   yesterdayPerfectMap = {},
+  feelingCheckins = [],
   pinboardMessages = [],
 }: DashboardClientProps) {
   const [showSettings, setShowSettings] = useState(false);
@@ -98,6 +108,7 @@ export function DashboardClient({
               pointsMap={pointsMap}
               streakMap={streakMap}
               yesterdayPerfectMap={yesterdayPerfectMap}
+              feelingCheckins={feelingCheckins}
               pinboardMessages={pinboardMessages}
             />
           </div>

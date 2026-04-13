@@ -169,6 +169,21 @@ async function getFamilyData(locale: string) {
   const yesterdayPerfectMap: Record<string, boolean> = {};
   for (const p of yesterdayPerfects) yesterdayPerfectMap[p.memberId] = true;
 
+  // Fetch feelings (last 7 days for weekly overview)
+  const sevenDaysAgo = new Date(todayStart);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+
+  const feelingCheckins = await db.feelingCheckin.findMany({
+    where: {
+      memberId: { in: memberIds },
+      date: { gte: sevenDaysAgo },
+    },
+    include: {
+      member: { select: { id: true, name: true, color: true } },
+    },
+    orderBy: { date: "asc" },
+  });
+
   // Fetch pinboard messages (exclude expired)
   const pinboardMessages = await db.pinboardMessage.findMany({
     where: {
@@ -226,6 +241,13 @@ async function getFamilyData(locale: string) {
     pointsMap,
     streakMap,
     yesterdayPerfectMap,
+    feelingCheckins: feelingCheckins.map((f) => ({
+      id: f.id,
+      date: f.date.toISOString(),
+      feeling: f.feeling,
+      note: f.note ?? null,
+      member: f.member,
+    })),
     pinboardMessages: pinboardMessages.map((m) => ({
       id: m.id,
       content: m.content,
@@ -261,6 +283,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       pointsMap={familyData.pointsMap}
       streakMap={familyData.streakMap}
       yesterdayPerfectMap={familyData.yesterdayPerfectMap}
+      feelingCheckins={familyData.feelingCheckins}
       pinboardMessages={familyData.pinboardMessages}
     />
   );
