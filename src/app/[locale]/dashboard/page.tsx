@@ -169,6 +169,19 @@ async function getFamilyData(locale: string) {
   const yesterdayPerfectMap: Record<string, boolean> = {};
   for (const p of yesterdayPerfects) yesterdayPerfectMap[p.memberId] = true;
 
+  // Fetch pinboard messages (exclude expired)
+  const pinboardMessages = await db.pinboardMessage.findMany({
+    where: {
+      familyId: family.id,
+      OR: [
+        { expiresAt: null },
+        { expiresAt: { gte: now } },
+      ],
+    },
+    include: { author: { select: { id: true, name: true, color: true } } },
+    orderBy: { createdAt: "desc" },
+  });
+
   let weather: WeatherData | null = null;
   if (family.latitude != null && family.longitude != null) {
     try {
@@ -213,6 +226,14 @@ async function getFamilyData(locale: string) {
     pointsMap,
     streakMap,
     yesterdayPerfectMap,
+    pinboardMessages: pinboardMessages.map((m) => ({
+      id: m.id,
+      content: m.content,
+      color: m.color,
+      createdAt: m.createdAt.toISOString(),
+      expiresAt: m.expiresAt ? m.expiresAt.toISOString() : null,
+      author: m.author,
+    })),
   };
 }
 
@@ -240,6 +261,7 @@ export default async function DashboardPage({ params }: { params: Promise<{ loca
       pointsMap={familyData.pointsMap}
       streakMap={familyData.streakMap}
       yesterdayPerfectMap={familyData.yesterdayPerfectMap}
+      pinboardMessages={familyData.pinboardMessages}
     />
   );
 }

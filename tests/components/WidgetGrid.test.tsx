@@ -22,6 +22,10 @@ vi.mock("next-intl", () => ({
         taskProgress: "Fortschritt",
         tasksComplete: "Alle erledigt",
       },
+      pinboard: {
+        title: "Pinnwand",
+        empty: "Noch keine Notizen",
+      },
     };
     return maps[namespace]?.[key] ?? key;
   },

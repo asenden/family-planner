@@ -12,6 +12,7 @@ import { MysterySpinWheel } from "./MysterySpinWheel";
 import { ConfettiCelebration } from "./ConfettiCelebration";
 import { StreakMilestoneModal } from "./StreakMilestoneModal";
 import type { WeatherData } from "@/lib/weather";
+import type { PinboardMessage } from "./PinboardWidget";
 
 interface CalendarEvent {
   id: string;
@@ -56,6 +57,7 @@ interface DashboardClientProps {
   pointsMap: Record<string, number>;
   streakMap?: Record<string, StreakInfo>;
   yesterdayPerfectMap?: Record<string, boolean>;
+  pinboardMessages?: PinboardMessage[];
 }
 
 export function DashboardClient({
@@ -71,6 +73,7 @@ export function DashboardClient({
   pointsMap,
   streakMap = {},
   yesterdayPerfectMap = {},
+  pinboardMessages = [],
 }: DashboardClientProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
@@ -95,6 +98,7 @@ export function DashboardClient({
               pointsMap={pointsMap}
               streakMap={streakMap}
               yesterdayPerfectMap={yesterdayPerfectMap}
+              pinboardMessages={pinboardMessages}
             />
           </div>
         </div>

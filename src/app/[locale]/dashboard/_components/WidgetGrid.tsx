@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useTranslations } from "next-intl";
-import { Pin, UtensilsCrossed, Heart, Images } from "lucide-react";
+import { UtensilsCrossed, Heart, Images } from "lucide-react";
 import { WidgetCard } from "./WidgetCard";
 import { CalendarWidget } from "./CalendarWidget";
 import { CalendarFullView } from "./CalendarFullView";
 import { RoutinesWidget } from "./RoutinesWidget";
 import { RoutinesFullView } from "./RoutinesFullView";
+import { PinboardWidget, type PinboardMessage } from "./PinboardWidget";
+import { PinboardFullView } from "./PinboardFullView";
 
 interface CalendarEvent {
   id: string;
@@ -46,6 +48,7 @@ interface WidgetGridProps {
   pointsMap?: Record<string, number>;
   streakMap?: Record<string, StreakInfo>;
   yesterdayPerfectMap?: Record<string, boolean>;
+  pinboardMessages?: PinboardMessage[];
 }
 
 export function WidgetGrid({
@@ -58,6 +61,7 @@ export function WidgetGrid({
   pointsMap = {},
   streakMap = {},
   yesterdayPerfectMap = {},
+  pinboardMessages = [],
 }: WidgetGridProps) {
   const t = useTranslations("dashboard");
   const [fullView, setFullView] = useState<string | null>(null);
@@ -92,6 +96,17 @@ export function WidgetGrid({
     );
   }
 
+  if (fullView === "pinboard" && familyId) {
+    return (
+      <PinboardFullView
+        familyId={familyId}
+        initialMessages={pinboardMessages}
+        members={familyMembers}
+        onBack={() => setFullView(null)}
+      />
+    );
+  }
+
   return (
     <div className="grid grid-cols-3 gap-4">
       <CalendarWidget
@@ -116,14 +131,10 @@ export function WidgetGrid({
         yesterdayPerfectMap={yesterdayPerfectMap}
       />
 
-      <WidgetCard
-        title={t("widgets.pinboard")}
-        icon={<Pin size={20} strokeWidth={1.8} />}
-        color="#34d399"
-        delay={150}
-      >
-        <p style={{ color: "var(--color-text-muted)" }}>{t("noMessages")}</p>
-      </WidgetCard>
+      <PinboardWidget
+        messages={pinboardMessages}
+        onTap={() => setFullView("pinboard")}
+      />
 
       <WidgetCard
         title={t("widgets.meal")}
