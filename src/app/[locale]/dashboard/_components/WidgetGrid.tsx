@@ -122,6 +122,7 @@ export function WidgetGrid({
   if (fullView === "feelings" && familyId) {
     return (
       <FeelingsFullView
+        key={fullViewKey}
         familyId={familyId}
         members={familyMembers}
         initialFeelings={feelingCheckins}
@@ -179,7 +180,7 @@ export function WidgetGrid({
             d.getDate() === today.getDate()
           );
         })}
-        onTap={() => setFullView("feelings")}
+        onTap={() => { setFullViewKey((k) => k + 1); setFullView("feelings"); }}
       />
 
       <WidgetCard

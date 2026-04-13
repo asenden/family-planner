@@ -1,7 +1,8 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, Check } from "lucide-react";
 import { FeelingFace, FEELING_COLORS } from "./FeelingFace";
 
@@ -62,6 +63,8 @@ export function FeelingsFullView({
   onBack,
 }: FeelingsFullViewProps) {
   const t = useTranslations("feelings");
+  const router = useRouter();
+  const dirty = useRef(false);
 
   // All feelings state (includes history for weekly grid)
   const [feelings, setFeelings] = useState<FeelingCheckin[]>(initialFeelings);
@@ -114,13 +117,14 @@ export function FeelingsFullView({
       });
       if (res.ok) {
         const { checkin } = await res.json();
-        // Update local feelings state
+        dirty.current = true;
+        // Update local feelings state with the full checkin (includes member relation)
         setFeelings((prev) => {
           const todayDate = toDateStr(new Date(checkin.date));
           const filtered = prev.filter(
             (f) => !(f.member.id === selectedMemberId && toDateStr(new Date(f.date)) === todayDate)
           );
-          return [...filtered, { ...checkin, date: checkin.date }];
+          return [...filtered, checkin];
         });
         setSaved(true);
         setTimeout(() => {
@@ -140,7 +144,7 @@ export function FeelingsFullView({
       {/* Back button */}
       <div className="flex items-center">
         <button
-          onClick={onBack}
+          onClick={() => { if (dirty.current) router.refresh(); onBack(); }}
           className="flex items-center gap-2 px-3 py-2 rounded-xl transition-colors hover:bg-white/10 active:bg-white/5"
           style={{ color: "var(--color-text-muted)" }}
         >
