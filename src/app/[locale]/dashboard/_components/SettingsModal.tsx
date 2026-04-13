@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef } from "react";
 import { useTranslations } from "next-intl";
-import { Settings, Users, CalendarDays, Key, X, MapPin } from "lucide-react";
+import { Settings, Users, CalendarDays, Key, X, MapPin, ListChecks, Trophy, Plus, Trash2, Pencil } from "lucide-react";
 
 interface FamilyMember {
   id: string;
@@ -30,15 +30,43 @@ interface GeoResult {
   longitude: number;
 }
 
+interface RoutineTask {
+  id: string;
+  title: string;
+  icon: string;
+  points: number;
+  order: number;
+}
+
+interface Routine {
+  id: string;
+  title: string;
+  icon: string;
+  schedule: "daily" | "weekdays" | "custom";
+  customDays: number[];
+  assignedTo: string;
+  tasks: RoutineTask[];
+  member: { id: string; name: string; color: string };
+}
+
+interface Reward {
+  id: string;
+  title: string;
+  icon: string;
+  cost: number;
+  redemptions: { id: string; memberId: string }[];
+}
+
 interface SettingsModalProps {
   familyId: string;
   familyCode: string;
   members: FamilyMember[];
   city?: string | null;
+  isParent?: boolean;
   onClose: () => void;
 }
 
-type Tab = "members" | "calendars" | "location" | "code";
+type Tab = "members" | "calendars" | "location" | "code" | "routines";
 
 const PROVIDER_ICONS: Record<string, string> = {
   apple: "🍎",
@@ -77,6 +105,16 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
   const [locationSaved, setLocationSaved] = useState(false);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  // Routines state
+  const tRoutines = useTranslations("routines");
+  const [routines, setRoutines] = useState<Routine[]>([]);
+  const [rewards, setRewards] = useState<Reward[]>([]);
+  const [loadingRoutines, setLoadingRoutines] = useState(false);
+  const [showAddRoutine, setShowAddRoutine] = useState(false);
+  const [showAddReward, setShowAddReward] = useState(false);
+  const [editingRoutine, setEditingRoutine] = useState<Routine | null>(null);
+  const [editingReward, setEditingReward] = useState<Reward | null>(null);
+
   useEffect(() => {
     if (activeTab === "calendars") {
       setLoadingAccounts(true);
@@ -86,6 +124,21 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
         .catch(() => {})
         .finally(() => setLoadingAccounts(false));
     }
+  }, [activeTab, familyId]);
+
+  useEffect(() => {
+    if (activeTab !== "routines") return;
+    setLoadingRoutines(true);
+    Promise.all([
+      fetch(`/api/families/${familyId}/routines`).then((r) => r.json()),
+      fetch(`/api/families/${familyId}/rewards`).then((r) => r.json()),
+    ])
+      .then(([routinesData, rewardsData]) => {
+        setRoutines(routinesData.routines ?? []);
+        setRewards(rewardsData.rewards ?? []);
+      })
+      .catch(() => {})
+      .finally(() => setLoadingRoutines(false));
   }, [activeTab, familyId]);
 
   useEffect(() => {
@@ -146,6 +199,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
     { key: "members", icon: <Users size={16} strokeWidth={1.5} />, label: t("familyMembers") },
     { key: "calendars", icon: <CalendarDays size={16} strokeWidth={1.5} />, label: t("calendarConnectors") },
     { key: "location", icon: <MapPin size={16} strokeWidth={1.5} />, label: t("location") },
+    { key: "routines", icon: <ListChecks size={16} strokeWidth={1.5} />, label: tRoutines("settingsTab") },
     { key: "code", icon: <Key size={16} strokeWidth={1.5} />, label: t("familyCode") },
   ];
 
@@ -414,6 +468,161 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                 <p className="text-sm text-center py-4" style={{ color: "var(--color-text-muted)" }}>
                   {tWeather("notConfigured")}
                 </p>
+              )}
+            </div>
+          )}
+
+          {activeTab === "routines" && (
+            <div className="space-y-4">
+              {loadingRoutines ? (
+                <p className="text-center py-4" style={{ color: "var(--color-text-muted)" }}>
+                  ...
+                </p>
+              ) : (
+                <>
+                  {/* --- Routines section --- */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                        {tRoutines("manageRoutines")}
+                      </p>
+                      <button
+                        onClick={() => setShowAddRoutine(true)}
+                        className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer"
+                        style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}
+                      >
+                        <Plus size={12} /> {tRoutines("addRoutine")}
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {routines.map((routine) => (
+                        <div
+                          key={routine.id}
+                          className="flex items-center justify-between p-3 rounded-xl"
+                          style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                        >
+                          <div>
+                            <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+                              {routine.icon} {routine.title}
+                            </p>
+                            <p className="text-xs mt-0.5" style={{ color: "var(--color-text-muted)" }}>
+                              {routine.member.name} · {routine.tasks.length} tasks
+                            </p>
+                          </div>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingRoutine(routine)}
+                              className="p-1.5 rounded-lg cursor-pointer"
+                              style={{ color: "var(--color-text-muted)", backgroundColor: "rgba(255,255,255,0.05)" }}
+                            >
+                              <Pencil size={14} strokeWidth={1.5} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(tRoutines("confirmDelete"))) return;
+                                await fetch(`/api/families/${familyId}/routines/${routine.id}`, { method: "DELETE" });
+                                setRoutines((prev) => prev.filter((r) => r.id !== routine.id));
+                              }}
+                              className="p-1.5 rounded-lg cursor-pointer"
+                              style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}
+                            >
+                              <Trash2 size={14} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {routines.length === 0 && (
+                        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>{tRoutines("noRoutines")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* --- Rewards section --- */}
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <p className="text-xs font-bold uppercase tracking-widest" style={{ color: "var(--color-text-muted)" }}>
+                        {tRoutines("manageRewards")}
+                      </p>
+                      <button
+                        onClick={() => setShowAddReward(true)}
+                        className="flex items-center gap-1 text-xs font-bold px-2 py-1 rounded-lg cursor-pointer"
+                        style={{ backgroundColor: "#f59e0b", color: "#1a1625" }}
+                      >
+                        <Trophy size={12} /> {tRoutines("addReward")}
+                      </button>
+                    </div>
+
+                    <div className="space-y-2">
+                      {rewards.map((reward) => (
+                        <div
+                          key={reward.id}
+                          className="flex items-center justify-between p-3 rounded-xl"
+                          style={{ backgroundColor: "rgba(255,255,255,0.05)" }}
+                        >
+                          <p className="text-sm font-semibold" style={{ color: "var(--color-text)" }}>
+                            {reward.icon} {reward.title}
+                            <span className="ml-2 text-xs font-normal" style={{ color: "#f59e0b" }}>
+                              {reward.cost} pts
+                            </span>
+                          </p>
+                          <div className="flex gap-2">
+                            <button
+                              onClick={() => setEditingReward(reward)}
+                              className="p-1.5 rounded-lg cursor-pointer"
+                              style={{ color: "var(--color-text-muted)", backgroundColor: "rgba(255,255,255,0.05)" }}
+                            >
+                              <Pencil size={14} strokeWidth={1.5} />
+                            </button>
+                            <button
+                              onClick={async () => {
+                                if (!confirm(tRoutines("confirmDelete"))) return;
+                                await fetch(`/api/families/${familyId}/rewards/${reward.id}`, { method: "DELETE" });
+                                setRewards((prev) => prev.filter((r) => r.id !== reward.id));
+                              }}
+                              className="p-1.5 rounded-lg cursor-pointer"
+                              style={{ color: "#f87171", backgroundColor: "rgba(248,113,113,0.1)" }}
+                            >
+                              <Trash2 size={14} strokeWidth={1.5} />
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                      {rewards.length === 0 && (
+                        <p className="text-sm" style={{ color: "var(--color-text-muted)" }}>{tRoutines("noRewards")}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Add Routine Form */}
+                  {showAddRoutine && (
+                    <AddRoutineForm
+                      familyId={familyId}
+                      members={members}
+                      onClose={() => setShowAddRoutine(false)}
+                      onAdded={(routine) => {
+                        setRoutines((prev) => [...prev, routine]);
+                        setShowAddRoutine(false);
+                      }}
+                    />
+                  )}
+
+                  {/* Add Reward Form */}
+                  {showAddReward && (
+                    <AddRewardForm
+                      familyId={familyId}
+                      onClose={() => setShowAddReward(false)}
+                      onAdded={(reward) => {
+                        setRewards((prev) => [...prev, reward]);
+                        setShowAddReward(false);
+                      }}
+                    />
+                  )}
+
+                  {/* Suppress unused state warnings */}
+                  {editingRoutine && null}
+                  {editingReward && null}
+                </>
               )}
             </div>
           )}
@@ -886,6 +1095,198 @@ function AddCalendarForm({
           }}
         >
           {loading ? t("connecting") : t("connect")}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AddRoutineForm({
+  familyId,
+  members,
+  onClose,
+  onAdded,
+}: {
+  familyId: string;
+  members: FamilyMember[];
+  onClose: () => void;
+  onAdded: (routine: Routine) => void;
+}) {
+  const tRoutines = useTranslations("routines");
+  const [title, setTitle] = useState("");
+  const [icon, setIcon] = useState("📋");
+  const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">("daily");
+  const [customDays, setCustomDays] = useState<number[]>([]);
+  const [assignedTo, setAssignedTo] = useState(members[0]?.id ?? "");
+  const [saving, setSaving] = useState(false);
+
+  const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"];
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim()) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/families/${familyId}/routines`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, icon, schedule, customDays, assignedTo }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onAdded(data.routine);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("addRoutine")}</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          className="w-14 text-center text-2xl rounded-xl p-2"
+          style={inputStyle}
+          maxLength={2}
+        />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={tRoutines("routineTitle")}
+          className="flex-1 rounded-xl px-3 py-2 text-sm"
+          style={inputStyle}
+          required
+        />
+      </div>
+      <select
+        value={schedule}
+        onChange={(e) => setSchedule(e.target.value as "daily" | "weekdays" | "custom")}
+        className="w-full rounded-xl px-3 py-2 text-sm"
+        style={inputStyle}
+      >
+        <option value="daily">{tRoutines("scheduleDaily")}</option>
+        <option value="weekdays">{tRoutines("scheduleWeekdays")}</option>
+        <option value="custom">{tRoutines("scheduleCustom")}</option>
+      </select>
+      {schedule === "custom" && (
+        <div className="flex gap-1">
+          {DAY_LABELS.map((label, i) => (
+            <button
+              key={i}
+              type="button"
+              onClick={() => setCustomDays((prev) => prev.includes(i) ? prev.filter((d) => d !== i) : [...prev, i])}
+              className="w-8 h-8 rounded-lg text-xs font-bold cursor-pointer"
+              style={{
+                backgroundColor: customDays.includes(i) ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
+                color: customDays.includes(i) ? "#fff" : "var(--color-text-muted)",
+              }}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      )}
+      <select
+        value={assignedTo}
+        onChange={(e) => setAssignedTo(e.target.value)}
+        className="w-full rounded-xl px-3 py-2 text-sm"
+        style={inputStyle}
+      >
+        {members.map((m) => (
+          <option key={m.id} value={m.id}>{m.name}</option>
+        ))}
+      </select>
+      <div className="flex gap-2">
+        <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer" style={{ backgroundColor: "var(--color-primary)", color: "#fff" }}>
+          {saving ? "..." : "Save"}
+        </button>
+      </div>
+    </form>
+  );
+}
+
+function AddRewardForm({
+  familyId,
+  onClose,
+  onAdded,
+}: {
+  familyId: string;
+  onClose: () => void;
+  onAdded: (reward: Reward) => void;
+}) {
+  const tRoutines = useTranslations("routines");
+  const [title, setTitle] = useState("");
+  const [icon, setIcon] = useState("🏆");
+  const [cost, setCost] = useState(50);
+  const [saving, setSaving] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault();
+    if (!title.trim() || cost < 1) return;
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/families/${familyId}/rewards`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title, icon, cost }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        onAdded(data.reward);
+      }
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-3 p-4 rounded-xl" style={{ backgroundColor: "rgba(255,255,255,0.04)", border: "1px solid rgba(255,255,255,0.08)" }}>
+      <p className="text-sm font-bold" style={{ color: "var(--color-text)" }}>{tRoutines("addReward")}</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={icon}
+          onChange={(e) => setIcon(e.target.value)}
+          className="w-14 text-center text-2xl rounded-xl p-2"
+          style={inputStyle}
+          maxLength={2}
+        />
+        <input
+          type="text"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+          placeholder={tRoutines("rewardTitle")}
+          className="flex-1 rounded-xl px-3 py-2 text-sm"
+          style={inputStyle}
+          required
+        />
+      </div>
+      <div className="flex items-center gap-2">
+        <label className="text-xs" style={{ color: "var(--color-text-muted)" }}>{tRoutines("rewardCost")}</label>
+        <input
+          type="number"
+          value={cost}
+          min={1}
+          onChange={(e) => setCost(Number(e.target.value))}
+          className="w-24 rounded-xl px-3 py-2 text-sm"
+          style={inputStyle}
+          required
+        />
+      </div>
+      <div className="flex gap-2">
+        <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
+          Cancel
+        </button>
+        <button type="submit" disabled={saving} className="flex-1 py-2 rounded-xl text-sm font-bold cursor-pointer" style={{ backgroundColor: "#f59e0b", color: "#1a1625" }}>
+          {saving ? "..." : "Save"}
         </button>
       </div>
     </form>
