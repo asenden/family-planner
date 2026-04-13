@@ -170,6 +170,23 @@
     "deleteConfirm": "Remove this note?",
     "charsLeft": "{count} left"
   },
+  "feelings": {
+    "title": "Feelings",
+    "howAreYou": "How are you feeling?",
+    "whoAreYou": "Who are you?",
+    "happy": "Happy",
+    "neutral": "Okay",
+    "sad": "Sad",
+    "angry": "Angry",
+    "excited": "Excited",
+    "notCheckedIn": "Not yet",
+    "note": "Want to say more?",
+    "notePlaceholder": "Optional note...",
+    "save": "Save",
+    "saved": "Saved!",
+    "thisWeek": "This Week",
+    "today": "Today"
+  },
   "routines": {
     "title": "Routines",
     "noRoutines": "No routines yet",

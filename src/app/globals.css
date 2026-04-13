@@ -134,6 +134,23 @@ body::after {
   box-shadow: 4px 8px 20px rgba(0, 0, 0, 0.4), 0 0 1px rgba(0, 0, 0, 0.15) !important;
 }
 
+/* Feelings check-in animations */
+@keyframes feeling-bounce {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.25); }
+  60% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+@keyframes feeling-glow-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50% { box-shadow: 0 0 24px var(--feeling-color, rgba(251,191,36,0.5)); }
+}
+
+.feeling-selected {
+  animation: feeling-bounce 0.4s ease-out;
+}
+
 /* Subtle grain texture overlay */
 .grain::before {
   content: "";

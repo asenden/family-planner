@@ -170,6 +170,23 @@
     "deleteConfirm": "Diese Notiz entfernen?",
     "charsLeft": "{count} übrig"
   },
+  "feelings": {
+    "title": "Gefühle",
+    "howAreYou": "Wie fühlst du dich?",
+    "whoAreYou": "Wer bist du?",
+    "happy": "Glücklich",
+    "neutral": "Okay",
+    "sad": "Traurig",
+    "angry": "Wütend",
+    "excited": "Aufgeregt",
+    "notCheckedIn": "Noch nicht",
+    "note": "Möchtest du mehr sagen?",
+    "notePlaceholder": "Optionale Notiz...",
+    "save": "Speichern",
+    "saved": "Gespeichert!",
+    "thisWeek": "Diese Woche",
+    "today": "Heute"
+  },
   "routines": {
     "title": "Routinen",
     "noRoutines": "Noch keine Routinen",
