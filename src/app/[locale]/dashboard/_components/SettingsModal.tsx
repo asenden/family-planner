@@ -519,7 +519,7 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                         if (!activeChild) return null;
                         const childRoutines = routines.filter((r) => r.assignedTo === activeChild.id);
                         const allTasks = childRoutines.flatMap((r) =>
-                          r.tasks.map((t) => ({ ...t, routineId: r.id }))
+                          r.tasks.map((t) => ({ ...t, routineId: r.id, routineSchedule: r.schedule, routineCustomDays: r.customDays }))
                         );
 
                         return (
@@ -549,6 +549,18 @@ export function SettingsModal({ familyId, familyCode, members: initialMembers, c
                                   <span className="text-sm flex-1" style={{ color: "var(--color-text)" }}>
                                     {task.icon} {task.title}
                                     <span className="ml-1.5 text-xs" style={{ color: "#f59e0b" }}>+{task.points}</span>
+                                    {task.routineSchedule === "weekdays" && (
+                                      <span className="ml-1.5 text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>{tRoutines("scheduleMoFr")}</span>
+                                    )}
+                                    {task.routineSchedule === "custom" && task.routineCustomDays.length > 0 && (
+                                      <span className="ml-1.5 text-xs font-semibold" style={{ color: "var(--color-text-muted)" }}>
+                                        {task.routineCustomDays
+                                          .slice()
+                                          .sort((a, b) => (a === 0 ? 7 : a) - (b === 0 ? 7 : b))
+                                          .map((d) => ["So", "Mo", "Di", "Mi", "Do", "Fr", "Sa"][d])
+                                          .join(", ")}
+                                      </span>
+                                    )}
                                   </span>
                                   <div className="flex gap-1.5 shrink-0">
                                     <button
@@ -1205,6 +1217,8 @@ function AddTaskForm({
   const [title, setTitle] = useState("");
   const [icon, setIcon] = useState("✅");
   const [points, setPoints] = useState(1);
+  const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">("daily");
+  const [customDays, setCustomDays] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -1212,17 +1226,25 @@ function AddTaskForm({
     if (!title.trim()) return;
     setSaving(true);
     try {
-      // Find or create a default routine for this child
-      let routine = routines.find((r) => r.assignedTo === memberId);
+      // Find or create a routine matching the selected schedule
+      let routine = routines.find((r) =>
+        r.assignedTo === memberId &&
+        r.schedule === schedule &&
+        (schedule !== "custom" || JSON.stringify([...r.customDays].sort()) === JSON.stringify([...customDays].sort()))
+      );
       if (!routine) {
+        const routineTitle =
+          schedule === "daily" ? tRoutines("scheduleDaily") :
+          schedule === "weekdays" ? tRoutines("scheduleWeekdays") :
+          tRoutines("scheduleCustom");
         const res = await fetch(`/api/families/${familyId}/routines`, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
-            title: tRoutines("defaultRoutine"),
+            title: routineTitle,
             icon: "📋",
-            schedule: "daily",
-            customDays: [],
+            schedule,
+            customDays: schedule === "custom" ? customDays : [],
             assignedTo: memberId,
           }),
         });
@@ -1274,6 +1296,49 @@ function AddTaskForm({
           className="w-16 rounded-xl px-3 py-2 text-sm text-center"
           style={inputStyle}
         />
+      </div>
+      {/* Schedule picker */}
+      <div>
+        <p className="text-xs font-semibold mb-1.5" style={{ color: "var(--color-text-muted)" }}>
+          {tRoutines("schedule")}
+        </p>
+        <div className="flex gap-1.5 mb-2">
+          {(["daily", "weekdays", "custom"] as const).map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSchedule(s)}
+              className="flex-1 py-1.5 text-xs font-semibold rounded-lg cursor-pointer"
+              style={{
+                backgroundColor: schedule === s ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
+                color: schedule === s ? "#fff" : "var(--color-text-muted)",
+              }}
+            >
+              {tRoutines(`schedule${s.charAt(0).toUpperCase() + s.slice(1)}` as "scheduleDaily" | "scheduleWeekdays" | "scheduleCustom")}
+            </button>
+          ))}
+        </div>
+        {schedule === "custom" && (
+          <div className="flex gap-1">
+            {["Mo", "Di", "Mi", "Do", "Fr", "Sa", "So"].map((label, i) => {
+              const jsDay = i === 6 ? 0 : i + 1;
+              return (
+                <button
+                  key={jsDay}
+                  type="button"
+                  onClick={() => setCustomDays((prev) => prev.includes(jsDay) ? prev.filter((d) => d !== jsDay) : [...prev, jsDay])}
+                  className="w-9 h-9 rounded-lg text-xs font-bold cursor-pointer"
+                  style={{
+                    backgroundColor: customDays.includes(jsDay) ? "var(--color-primary)" : "rgba(255,255,255,0.06)",
+                    color: customDays.includes(jsDay) ? "#fff" : "var(--color-text-muted)",
+                  }}
+                >
+                  {label}
+                </button>
+              );
+            })}
+          </div>
+        )}
       </div>
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>

@@ -50,6 +50,14 @@ interface RoutinesFullViewProps {
 
 type Tab = "tasks" | "goals";
 
+function isScheduledToday(routine: Routine): boolean {
+  const today = new Date().getDay();
+  if (routine.schedule === "daily") return true;
+  if (routine.schedule === "weekdays") return today >= 1 && today <= 5;
+  if (routine.schedule === "custom") return routine.customDays.includes(today);
+  return false;
+}
+
 function todayDateStr(): string {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
@@ -206,9 +214,9 @@ export function RoutinesFullView({
               </div>
             )}
             {children.map((child) => {
-              // Collect ALL tasks for this child across all routines (flat)
+              // Collect today's tasks for this child across scheduled routines (flat)
               const allTasks = routines
-                .filter((r) => r.assignedTo === child.id)
+                .filter((r) => r.assignedTo === child.id && isScheduledToday(r))
                 .flatMap((r) => r.tasks);
               const childPoints = pointsMap[child.id] ?? 0;
 
