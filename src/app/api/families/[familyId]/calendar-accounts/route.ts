@@ -36,6 +36,14 @@ export async function POST(
   const body = await request.json();
   const { provider, username, password, serverUrl, memberId, calendarId, calendarName } = body;
 
+  // Google accounts are created via OAuth callback, not this endpoint
+  if (provider === "google") {
+    return NextResponse.json(
+      { error: "Google accounts must be connected via OAuth. Use /api/auth/google-calendar/start" },
+      { status: 400 }
+    );
+  }
+
   if (!provider || !username || !password) {
     return NextResponse.json({ error: "Missing required fields: provider, username, password" }, { status: 400 });
   }
