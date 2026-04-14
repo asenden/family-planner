@@ -50,7 +50,7 @@ export default function CalendarSettingsPage() {
         const familyRes = await fetch("/api/families");
         if (!familyRes.ok) return;
         const familyData = await familyRes.json();
-        const id = familyData.family?.id || familyData.id || null;
+        const id = familyData.familyId || familyData.family?.id || familyData.id || null;
         if (!id) return;
         setFamilyId(id);
 
