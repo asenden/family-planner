@@ -2,6 +2,7 @@ import { db } from "@/lib/db";
 import { fetchEvents } from "./client";
 import type { ParsedEvent } from "./parser";
 import type { CalDAVConnectOptions } from "./client";
+import { refreshAccessToken } from "@/lib/google-oauth";
 
 export interface LocalEvent {
   id: string;
@@ -62,6 +63,61 @@ function hasChanged(local: LocalEvent, remote: RemoteEvent): boolean {
   );
 }
 
+async function buildConnectOptions(account: {
+  provider: string;
+  serverUrl: string;
+  username: string;
+  password: string;
+  accessToken: string | null;
+  refreshToken: string | null;
+  tokenExpiresAt: Date | null;
+  id: string;
+}): Promise<CalDAVConnectOptions> {
+  const base = {
+    provider: account.provider as CalDAVConnectOptions["provider"],
+    serverUrl: account.serverUrl,
+    username: account.username,
+    password: account.password,
+  };
+
+  if (account.provider !== "google" || !account.refreshToken) {
+    return base;
+  }
+
+  let accessToken = account.accessToken ?? "";
+  const fiveMinutes = 5 * 60 * 1000;
+  const needsRefresh =
+    !account.tokenExpiresAt ||
+    account.tokenExpiresAt.getTime() <= Date.now() + fiveMinutes;
+
+  if (needsRefresh) {
+    try {
+      const refreshed = await refreshAccessToken(account.refreshToken);
+      accessToken = refreshed.accessToken;
+      await db.calendarAccount.update({
+        where: { id: account.id },
+        data: {
+          accessToken: refreshed.accessToken,
+          tokenExpiresAt: refreshed.expiresAt,
+        },
+      });
+    } catch (err) {
+      console.error(`Failed to refresh Google token for account ${account.id}:`, err);
+      throw err;
+    }
+  } else {
+    accessToken = account.accessToken ?? "";
+  }
+
+  return {
+    ...base,
+    oauth: {
+      accessToken,
+      refreshToken: account.refreshToken,
+    },
+  };
+}
+
 export async function syncCalendarAccount(
   accountId: string,
 ): Promise<{ created: number; updated: number; deleted: number }> {
@@ -73,12 +129,7 @@ export async function syncCalendarAccount(
     return { created: 0, updated: 0, deleted: 0 };
   }
 
-  const connectOptions: CalDAVConnectOptions = {
-    provider: account.provider,
-    serverUrl: account.serverUrl,
-    username: account.username,
-    password: account.password,
-  };
+  const connectOptions = await buildConnectOptions(account);
 
   const now = new Date();
   const start = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000); // 30 days ago

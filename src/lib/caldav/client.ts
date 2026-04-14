@@ -16,6 +16,10 @@ interface CalDAVConnectOptions {
   serverUrl: string;
   username: string;
   password: string;
+  oauth?: {
+    accessToken: string;
+    refreshToken: string;
+  };
 }
 
 const PROVIDER_URLS: Partial<Record<CalendarSource, string>> = {
@@ -27,6 +31,21 @@ export type { CalDAVConnectOptions };
 
 export async function connectCalDAV(options: CalDAVConnectOptions) {
   const serverUrl = PROVIDER_URLS[options.provider] || options.serverUrl;
+  if (options.oauth) {
+    const client = await createDAVClient({
+      serverUrl,
+      credentials: {
+        accessToken: options.oauth.accessToken,
+        refreshToken: options.oauth.refreshToken,
+        tokenUrl: "https://oauth2.googleapis.com/token",
+        clientId: process.env.GOOGLE_CLIENT_ID,
+        clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      },
+      authMethod: "Oauth",
+      defaultAccountType: "caldav",
+    });
+    return client;
+  }
   const client = await createDAVClient({
     serverUrl,
     credentials: {
