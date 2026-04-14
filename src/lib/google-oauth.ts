@@ -4,7 +4,7 @@ const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
 
-const SCOPES = "https://www.googleapis.com/auth/calendar.readonly email";
+const SCOPES = "https://www.googleapis.com/auth/calendar email";
 const REDIRECT_URI = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/auth/google-calendar/callback`
   : "http://localhost:3000/api/auth/google-calendar/callback";
