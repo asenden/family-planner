@@ -6,6 +6,7 @@ services:
     env_file: .env
     environment:
       - DATABASE_URL=postgresql://fd:fd@db:5432/familydisplay
+      - TZ=Europe/Berlin
     depends_on:
       db:
         condition: service_healthy
@@ -19,6 +20,7 @@ services:
       - POSTGRES_USER=fd
       - POSTGRES_PASSWORD=fd
       - POSTGRES_DB=familydisplay
+      - TZ=Europe/Berlin
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U fd -d familydisplay"]
       interval: 5s
