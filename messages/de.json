@@ -151,7 +151,8 @@
     "connectionFailed": "Verbindung fehlgeschlagen. Überprüfe deine Zugangsdaten.",
     "selectCalendars": "Kalender zum Synchronisieren auswählen",
     "connecting": "Verbinde...",
-    "saving": "Speichere..."
+    "saving": "Speichere...",
+    "cancel": "Abbrechen"
   },
   "pinboard": {
     "title": "Pinnwand",

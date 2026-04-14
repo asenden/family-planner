@@ -151,7 +151,8 @@
     "connectionFailed": "Connection failed. Check your credentials.",
     "selectCalendars": "Select calendars to sync",
     "connecting": "Connecting...",
-    "saving": "Saving..."
+    "saving": "Saving...",
+    "cancel": "Cancel"
   },
   "pinboard": {
     "title": "Pinboard",

@@ -1107,8 +1107,7 @@ function AddCalendarForm({
   }
 
   return (
-    <form
-      onSubmit={handleConnect}
+    <div
       className="p-4 mt-2"
       style={{
         backgroundColor: "rgba(255,255,255,0.05)",
@@ -1149,76 +1148,106 @@ function AddCalendarForm({
         ))}
       </div>
 
-      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-muted)" }}>
-        {t("username")}
-      </label>
-      <input
-        type="email"
-        value={username}
-        onChange={(e) => setUsername(e.target.value)}
-        placeholder="you@example.com"
-        className="w-full mb-3 p-2 text-sm outline-none"
-        style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
-        required
-      />
-
-      <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-muted)" }}>
-        {t("password")}
-      </label>
-      {provider === "apple" && (
-        <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{t("passwordHint")}</p>
-      )}
-      <input
-        type="password"
-        value={password}
-        onChange={(e) => setPassword(e.target.value)}
-        className="w-full mb-3 p-2 text-sm outline-none"
-        style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
-        required
-      />
-
-      {provider === "other" && (
-        <>
+      {provider === "google" ? (
+        <div className="flex gap-2 mt-2">
+          <button
+            type="button"
+            onClick={onCancel}
+            className="flex-1 py-2 text-sm font-semibold cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "rgba(255,255,255,0.05)",
+              color: "var(--color-text)",
+            }}
+          >
+            {t("cancel")}
+          </button>
+          <button
+            type="button"
+            onClick={() => { window.location.href = `/api/auth/google-calendar/start?familyId=${familyId}`; }}
+            className="flex-1 py-2 text-sm text-white font-semibold cursor-pointer"
+            style={{
+              borderRadius: "var(--border-radius)",
+              backgroundColor: "#4285F4",
+            }}
+          >
+            Mit Google verbinden
+          </button>
+        </div>
+      ) : (
+        <form onSubmit={handleConnect}>
           <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-muted)" }}>
-            {t("serverUrl")}
+            {t("username")}
           </label>
           <input
-            type="url"
-            value={serverUrl}
-            onChange={(e) => setServerUrl(e.target.value)}
-            placeholder="https://caldav.example.com"
+            type="email"
+            value={username}
+            onChange={(e) => setUsername(e.target.value)}
+            placeholder="you@example.com"
             className="w-full mb-3 p-2 text-sm outline-none"
             style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
+            required
           />
-        </>
-      )}
 
-      <div className="flex gap-2 mt-2">
-        <button
-          type="button"
-          onClick={onCancel}
-          className="flex-1 py-2 text-sm font-semibold cursor-pointer"
-          style={{
-            borderRadius: "var(--border-radius)",
-            backgroundColor: "rgba(255,255,255,0.05)",
-            color: "var(--color-text)",
-          }}
-        >
-          {t("cancel")}
-        </button>
-        <button
-          type="submit"
-          disabled={!username || !password || loading}
-          className="flex-1 py-2 text-sm text-white font-semibold disabled:opacity-50 cursor-pointer"
-          style={{
-            borderRadius: "var(--border-radius)",
-            backgroundColor: "var(--color-primary)",
-          }}
-        >
-          {loading ? t("connecting") : t("connect")}
-        </button>
-      </div>
-    </form>
+          <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-muted)" }}>
+            {t("password")}
+          </label>
+          {provider === "apple" && (
+            <p className="text-xs mb-1" style={{ color: "var(--color-text-muted)" }}>{t("passwordHint")}</p>
+          )}
+          <input
+            type="password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full mb-3 p-2 text-sm outline-none"
+            style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
+            required
+          />
+
+          {provider === "other" && (
+            <>
+              <label className="block text-xs font-semibold mb-1" style={{ color: "var(--color-text-muted)" }}>
+                {t("serverUrl")}
+              </label>
+              <input
+                type="url"
+                value={serverUrl}
+                onChange={(e) => setServerUrl(e.target.value)}
+                placeholder="https://caldav.example.com"
+                className="w-full mb-3 p-2 text-sm outline-none"
+                style={{ ...inputStyle, borderRadius: "calc(var(--border-radius) / 2)" }}
+              />
+            </>
+          )}
+
+          <div className="flex gap-2 mt-2">
+            <button
+              type="button"
+              onClick={onCancel}
+              className="flex-1 py-2 text-sm font-semibold cursor-pointer"
+              style={{
+                borderRadius: "var(--border-radius)",
+                backgroundColor: "rgba(255,255,255,0.05)",
+                color: "var(--color-text)",
+              }}
+            >
+              {t("cancel")}
+            </button>
+            <button
+              type="submit"
+              disabled={!username || !password || loading}
+              className="flex-1 py-2 text-sm text-white font-semibold disabled:opacity-50 cursor-pointer"
+              style={{
+                borderRadius: "var(--border-radius)",
+                backgroundColor: "var(--color-primary)",
+              }}
+            >
+              {loading ? t("connecting") : t("connect")}
+            </button>
+          </div>
+        </form>
+      )}
+    </div>
   );
 }
 
