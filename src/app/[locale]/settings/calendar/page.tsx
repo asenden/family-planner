@@ -27,6 +27,23 @@ export default function CalendarSettingsPage() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // Check for OAuth error in URL params
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const oauthError = params.get("error");
+    if (oauthError) {
+      const messages: Record<string, string> = {
+        oauth_denied: "Google-Zugriff wurde verweigert.",
+        oauth_failed: "Google-Verbindung fehlgeschlagen. Bitte erneut versuchen.",
+        invalid_state: "Ungültige Anfrage. Bitte erneut versuchen.",
+        no_members: "Kein Familienmitglied gefunden.",
+      };
+      setError(messages[oauthError] ?? "Unbekannter Fehler.");
+      // Clean URL
+      window.history.replaceState({}, "", window.location.pathname);
+    }
+  }, []);
+
   useEffect(() => {
     async function loadData() {
       try {
@@ -77,6 +94,12 @@ export default function CalendarSettingsPage() {
         <h1 className="text-2xl font-bold mb-6" style={{ color: "var(--color-text)" }}>
           {t("title")}
         </h1>
+
+        {error && !showAddForm && (
+          <p className="mb-4 text-sm font-semibold" style={{ color: "#FF6B6B" }}>
+            {error}
+          </p>
+        )}
 
         {/* Account List */}
         <div className="space-y-3 mb-6">

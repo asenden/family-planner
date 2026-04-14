@@ -103,7 +103,7 @@ async function buildConnectOptions(account: {
       });
     } catch (err) {
       console.error(`Failed to refresh Google token for account ${account.id}:`, err);
-      throw err;
+      return base; // Skip OAuth — sync will fail gracefully
     }
   } else {
     accessToken = account.accessToken ?? "";

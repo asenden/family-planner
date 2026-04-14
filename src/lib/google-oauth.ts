@@ -1,3 +1,5 @@
+import { createHmac } from "crypto";
+
 const GOOGLE_AUTH_URL = "https://accounts.google.com/o/oauth2/v2/auth";
 const GOOGLE_TOKEN_URL = "https://oauth2.googleapis.com/token";
 const GOOGLE_USERINFO_URL = "https://www.googleapis.com/oauth2/v2/userinfo";
@@ -6,6 +8,12 @@ const SCOPES = "https://www.googleapis.com/auth/calendar.readonly email";
 const REDIRECT_URI = process.env.NEXTAUTH_URL
   ? `${process.env.NEXTAUTH_URL}/api/auth/google-calendar/callback`
   : "http://localhost:3000/api/auth/google-calendar/callback";
+
+function getSigningSecret(): string {
+  const secret = process.env.NEXTAUTH_SECRET;
+  if (!secret) throw new Error("NEXTAUTH_SECRET not set");
+  return secret;
+}
 
 function getClientId(): string {
   const id = process.env.GOOGLE_CLIENT_ID;
@@ -20,7 +28,11 @@ function getClientSecret(): string {
 }
 
 export function buildGoogleAuthUrl(familyId: string): string {
-  const state = Buffer.from(JSON.stringify({ familyId })).toString("base64url");
+  const payload = JSON.stringify({ familyId });
+  const signature = createHmac("sha256", getSigningSecret())
+    .update(payload)
+    .digest("base64url");
+  const state = Buffer.from(JSON.stringify({ payload, signature })).toString("base64url");
   const params = new URLSearchParams({
     client_id: getClientId(),
     redirect_uri: REDIRECT_URI,
@@ -34,7 +46,12 @@ export function buildGoogleAuthUrl(familyId: string): string {
 }
 
 export function parseState(state: string): { familyId: string } {
-  return JSON.parse(Buffer.from(state, "base64url").toString());
+  const { payload, signature } = JSON.parse(Buffer.from(state, "base64url").toString());
+  const expected = createHmac("sha256", getSigningSecret())
+    .update(payload)
+    .digest("base64url");
+  if (signature !== expected) throw new Error("Invalid state signature");
+  return JSON.parse(payload);
 }
 
 export async function exchangeCodeForTokens(code: string): Promise<{

@@ -49,13 +49,28 @@ export async function GET(request: Request) {
       return NextResponse.redirect(`${settingsUrl}?error=no_members`);
     }
 
-    // 4. Create calendar account
-    const account = await db.calendarAccount.create({
-      data: {
+    // 4. Create or update calendar account
+    const account = await db.calendarAccount.upsert({
+      where: {
+        memberId_serverUrl_username_calendarId: {
+          memberId: firstMember.id,
+          serverUrl: "https://apidata.googleusercontent.com/caldav/v2/",
+          username: email,
+          calendarId: "",
+        },
+      },
+      update: {
+        accessToken,
+        refreshToken,
+        tokenExpiresAt: expiresAt,
+        syncEnabled: true,
+      },
+      create: {
         provider: "google",
         username: email,
         password: "",
         serverUrl: "https://apidata.googleusercontent.com/caldav/v2/",
+        calendarId: "",
         accessToken,
         refreshToken,
         tokenExpiresAt: expiresAt,
