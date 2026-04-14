@@ -108,6 +108,10 @@ model CalendarAccount {
   calendarId   String?
   calendarName String?
 
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+
   syncEnabled Boolean  @default(true)
   lastSyncAt  DateTime?
 
