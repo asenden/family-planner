@@ -25,14 +25,14 @@ export async function GET(
     if (historyDays) {
       const days = parseInt(historyDays, 10);
       const today = new Date();
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
       const start = new Date(todayStart);
       start.setDate(start.getDate() - (days - 1));
       dateFilter = { gte: start };
     } else {
       // Today only
       const today = new Date();
-      const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+      const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
       const todayEnd = new Date(todayStart);
       todayEnd.setDate(todayEnd.getDate() + 1);
       dateFilter = { gte: todayStart, lte: todayEnd };
@@ -90,7 +90,7 @@ export async function POST(
     }
 
     const today = new Date();
-    const todayDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
 
     const checkin = await db.feelingCheckin.upsert({
       where: {
