@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import { TopBar } from "./TopBar";
 import { WidgetGrid } from "./WidgetGrid";
 import { IdleScreensaver } from "./IdleScreensaver";
@@ -13,6 +14,8 @@ import { ConfettiCelebration } from "./ConfettiCelebration";
 import { StreakMilestoneModal } from "./StreakMilestoneModal";
 import type { WeatherData } from "@/lib/weather";
 import type { PinboardMessage } from "./PinboardWidget";
+
+const REFRESH_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 
 interface CalendarEvent {
   id: string;
@@ -87,6 +90,21 @@ export function DashboardClient({
 }: DashboardClientProps) {
   const [showSettings, setShowSettings] = useState(false);
   const [showWeather, setShowWeather] = useState(false);
+  const router = useRouter();
+  const [currentDay, setCurrentDay] = useState(() => new Date().getDate());
+
+  // Periodic refresh every 5 minutes + immediate refresh at midnight
+  useEffect(() => {
+    const interval = setInterval(() => {
+      const nowDay = new Date().getDate();
+      if (nowDay !== currentDay) {
+        // Day changed — full reload to reset tasks
+        setCurrentDay(nowDay);
+      }
+      router.refresh();
+    }, REFRESH_INTERVAL_MS);
+    return () => clearInterval(interval);
+  }, [router, currentDay]);
 
   return (
     <GamificationProvider>

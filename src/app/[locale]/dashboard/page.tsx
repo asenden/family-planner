@@ -75,79 +75,109 @@ async function getFamilyData(locale: string) {
     ninetyDaysAhead
   );
 
-  // Fetch routines with tasks for this family
-  const routines = await db.routine.findMany({
-    where: { familyId: family.id },
-    include: {
-      tasks: { orderBy: { order: "asc" } },
-      member: { select: { id: true, name: true, color: true } },
-    },
-    orderBy: { createdAt: "asc" },
-  });
-
-  // Fetch today's completions
+  // Prepare date values
   const today = new Date();
   const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
-  const completions = await db.routineCompletion.findMany({
-    where: {
-      memberId: { in: family.members.map((m) => m.id) },
-      date: todayStart,
-    },
-    select: { taskId: true },
-  });
-  const todayCompletedTaskIds = completions.map((c) => c.taskId);
+  const yesterday = new Date(today);
+  yesterday.setDate(yesterday.getDate() - 1);
+  const yesterdayStart = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()));
+  const sevenDaysAgo = new Date(todayStart);
+  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
 
-  // Fetch rewards
-  const rewards = await db.reward.findMany({
-    where: { familyId: family.id },
-    include: {
-      redemptions: { select: { id: true, memberId: true } },
-    },
-    orderBy: { cost: "asc" },
-  });
-
-  // Compute points per member
   const memberIds = family.members.map((m) => m.id);
 
-  // Earned points: sum of task points for all completions
-  const allCompletions = await db.routineCompletion.findMany({
-    where: { memberId: { in: memberIds } },
-    include: { task: { select: { points: true } } },
-  });
+  // Run all independent queries in parallel
+  const [
+    routines,
+    completions,
+    rewards,
+    allCompletions,
+    allRedemptions,
+    allBonusLogs,
+    streaks,
+    yesterdayPerfects,
+    feelingCheckins,
+    pinboardMessages,
+    weather,
+  ] = await Promise.all([
+    db.routine.findMany({
+      where: { familyId: family.id },
+      include: {
+        tasks: { orderBy: { order: "asc" } },
+        member: { select: { id: true, name: true, color: true } },
+      },
+      orderBy: { createdAt: "asc" },
+    }),
+    db.routineCompletion.findMany({
+      where: { memberId: { in: memberIds }, date: todayStart },
+      select: { taskId: true },
+    }),
+    db.reward.findMany({
+      where: { familyId: family.id },
+      include: { redemptions: { select: { id: true, memberId: true } } },
+      orderBy: { cost: "asc" },
+    }),
+    db.routineCompletion.findMany({
+      where: { memberId: { in: memberIds } },
+      include: { task: { select: { points: true } } },
+    }),
+    db.rewardRedemption.findMany({
+      where: { memberId: { in: memberIds } },
+      include: { reward: { select: { cost: true } } },
+    }),
+    db.bonusLog.findMany({
+      where: { memberId: { in: memberIds } },
+      select: { memberId: true, points: true },
+    }),
+    db.streak.findMany({
+      where: { memberId: { in: memberIds } },
+    }),
+    db.bonusLog.findMany({
+      where: { memberId: { in: memberIds }, date: yesterdayStart, type: "perfect_day" },
+      select: { memberId: true },
+    }),
+    db.feelingCheckin.findMany({
+      where: { memberId: { in: memberIds }, date: { gte: sevenDaysAgo } },
+      include: { member: { select: { id: true, name: true, color: true } } },
+      orderBy: { date: "asc" },
+    }),
+    db.pinboardMessage.findMany({
+      where: {
+        familyId: family.id,
+        OR: [{ expiresAt: null }, { expiresAt: { gte: now } }],
+      },
+      include: { author: { select: { id: true, name: true, color: true } } },
+      orderBy: { createdAt: "desc" },
+    }),
+    (async (): Promise<WeatherData | null> => {
+      if (family.latitude != null && family.longitude != null) {
+        try { return await fetchWeather(family.latitude, family.longitude, locale); } catch { return null; }
+      }
+      return null;
+    })(),
+  ]);
+
+  const todayCompletedTaskIds = completions.map((c) => c.taskId);
+
+  // Compute points per member
   const earned: Record<string, number> = {};
   for (const c of allCompletions) {
     earned[c.memberId] = (earned[c.memberId] ?? 0) + c.task.points;
   }
-
-  // Spent points: sum of reward costs for all redemptions
-  const allRedemptions = await db.rewardRedemption.findMany({
-    where: { memberId: { in: memberIds } },
-    include: { reward: { select: { cost: true } } },
-  });
   const spent: Record<string, number> = {};
   for (const r of allRedemptions) {
     spent[r.memberId] = (spent[r.memberId] ?? 0) + r.reward.cost;
   }
-
-  // Bonus points from gamification (critical hits, mystery spins, perfect days, milestones)
-  const allBonusLogs = await db.bonusLog.findMany({
-    where: { memberId: { in: memberIds } },
-    select: { memberId: true, points: true },
-  });
   const bonus: Record<string, number> = {};
   for (const b of allBonusLogs) {
     bonus[b.memberId] = (bonus[b.memberId] ?? 0) + b.points;
   }
-
   const pointsMap: Record<string, number> = {};
   for (const id of memberIds) {
     pointsMap[id] = (earned[id] ?? 0) + (bonus[id] ?? 0) - (spent[id] ?? 0);
   }
 
-  // Fetch streaks for all members
-  const streaks = await db.streak.findMany({
-    where: { memberId: { in: family.members.map((m: any) => m.id) } },
-  });
+  // Build streak map
   const streakMap: Record<string, { current: number; longest: number; tier: string; multiplier: number; tierIcon: string; flameFrom: string; flameTo: string }> = {};
   for (const s of streaks) {
     const tier = getStreakTier(s.current);
@@ -158,53 +188,8 @@ async function getFamilyData(locale: string) {
     };
   }
 
-  // Check yesterday's perfect days
-  const yesterday = new Date(today);
-  yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStart = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()));
-  const yesterdayPerfects = await db.bonusLog.findMany({
-    where: { memberId: { in: family.members.map((m: any) => m.id) }, date: yesterdayStart, type: "perfect_day" },
-    select: { memberId: true },
-  });
   const yesterdayPerfectMap: Record<string, boolean> = {};
   for (const p of yesterdayPerfects) yesterdayPerfectMap[p.memberId] = true;
-
-  // Fetch feelings (last 7 days for weekly overview)
-  const sevenDaysAgo = new Date(todayStart);
-  sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
-
-  const feelingCheckins = await db.feelingCheckin.findMany({
-    where: {
-      memberId: { in: memberIds },
-      date: { gte: sevenDaysAgo },
-    },
-    include: {
-      member: { select: { id: true, name: true, color: true } },
-    },
-    orderBy: { date: "asc" },
-  });
-
-  // Fetch pinboard messages (exclude expired)
-  const pinboardMessages = await db.pinboardMessage.findMany({
-    where: {
-      familyId: family.id,
-      OR: [
-        { expiresAt: null },
-        { expiresAt: { gte: now } },
-      ],
-    },
-    include: { author: { select: { id: true, name: true, color: true } } },
-    orderBy: { createdAt: "desc" },
-  });
-
-  let weather: WeatherData | null = null;
-  if (family.latitude != null && family.longitude != null) {
-    try {
-      weather = await fetchWeather(family.latitude, family.longitude, locale);
-    } catch {
-      // Weather fetch failed — show dashboard without weather
-    }
-  }
 
   return {
     familyId: family.id,
