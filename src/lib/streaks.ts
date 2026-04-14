@@ -18,8 +18,8 @@ function toDateKey(d: Date): string {
 
 function daysBetween(a: Date, b: Date): number {
   const msPerDay = 86400000;
-  const aDay = new Date(a.getFullYear(), a.getMonth(), a.getDate()).getTime();
-  const bDay = new Date(b.getFullYear(), b.getMonth(), b.getDate()).getTime();
+  const aDay = Date.UTC(a.getFullYear(), a.getMonth(), a.getDate());
+  const bDay = Date.UTC(b.getFullYear(), b.getMonth(), b.getDate());
   return Math.round(Math.abs(aDay - bDay) / msPerDay);
 }
 
@@ -32,7 +32,7 @@ export async function checkPerfectDay(
   familyId: string,
   today: Date
 ): Promise<{ isPerfectDay: boolean; totalTasks: number; completedTasks: number }> {
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
   const dayOfWeek = today.getDay();
 
   // Get all routines assigned to this child
@@ -71,7 +71,7 @@ export async function recomputeStreak(
   memberId: string,
   today: Date
 ): Promise<{ current: number; longest: number; milestoneHit: number | null }> {
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
   const todayKey = toDateKey(today);
 
   let streak = await db.streak.findUnique({ where: { memberId } });
@@ -135,7 +135,7 @@ export async function handleUncheck(memberId: string, today: Date): Promise<void
         lastDate: streak.current > 1 ? (() => {
           const yesterday = new Date(today);
           yesterday.setDate(yesterday.getDate() - 1);
-          return new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+          return new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()));
         })() : null,
       },
     });

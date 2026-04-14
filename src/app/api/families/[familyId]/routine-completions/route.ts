@@ -39,12 +39,8 @@ export async function POST(
   }
 
   const dateStr = date as string;
-  const dateValue = new Date(dateStr);
-  const todayStart = new Date(
-    dateValue.getFullYear(),
-    dateValue.getMonth(),
-    dateValue.getDate()
-  );
+  const dateValue = new Date(dateStr); // "YYYY-MM-DD" → UTC midnight
+  const todayStart = dateValue;
 
   try {
     // 1. Toggle the completion

@@ -87,7 +87,7 @@ async function getFamilyData(locale: string) {
 
   // Fetch today's completions
   const today = new Date();
-  const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+  const todayStart = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
   const completions = await db.routineCompletion.findMany({
     where: {
       memberId: { in: family.members.map((m) => m.id) },
@@ -161,7 +161,7 @@ async function getFamilyData(locale: string) {
   // Check yesterday's perfect days
   const yesterday = new Date(today);
   yesterday.setDate(yesterday.getDate() - 1);
-  const yesterdayStart = new Date(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate());
+  const yesterdayStart = new Date(Date.UTC(yesterday.getFullYear(), yesterday.getMonth(), yesterday.getDate()));
   const yesterdayPerfects = await db.bonusLog.findMany({
     where: { memberId: { in: family.members.map((m: any) => m.id) }, date: yesterdayStart, type: "perfect_day" },
     select: { memberId: true },
