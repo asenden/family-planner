@@ -76,24 +76,34 @@ export async function POST(
       select: { points: true, routineId: true },
     });
 
-    // 3. Critical hit (only on check, not uncheck)
+    // 3. Critical hit (only on check, not uncheck; once per task per day)
     let criticalHit = false;
     let criticalBonusPoints = 0;
     if (completed !== false && task) {
       criticalHit = rollCriticalHit(dateStr, memberId as string, taskId as string);
       if (criticalHit) {
-        criticalBonusPoints = Math.round(
-          task.points * (getCriticalMultiplier() - 1)
-        );
-        await db.bonusLog.create({
-          data: {
+        const existingCrit = await db.bonusLog.findFirst({
+          where: {
             memberId: memberId as string,
             date: todayStart,
             type: "critical_hit",
-            points: criticalBonusPoints,
-            metadata: { taskId },
+            metadata: { path: ["taskId"], equals: taskId },
           },
         });
+        if (!existingCrit) {
+          criticalBonusPoints = Math.round(
+            task.points * (getCriticalMultiplier() - 1)
+          );
+          await db.bonusLog.create({
+            data: {
+              memberId: memberId as string,
+              date: todayStart,
+              type: "critical_hit",
+              points: criticalBonusPoints,
+              metadata: { taskId },
+            },
+          });
+        }
       }
     }
 
@@ -181,6 +191,27 @@ export async function POST(
         });
       }
     } else if (completed === false) {
+      // Clean up critical_hit bonus for this specific task
+      await db.bonusLog.deleteMany({
+        where: {
+          memberId: memberId as string,
+          date: todayStart,
+          type: "critical_hit",
+          metadata: { path: ["taskId"], equals: taskId },
+        },
+      });
+
+      // If day is no longer perfect, remove perfect_day and mystery_spin bonuses
+      if (!isPerfectDay) {
+        await db.bonusLog.deleteMany({
+          where: {
+            memberId: memberId as string,
+            date: todayStart,
+            type: { in: ["perfect_day", "mystery_spin"] },
+          },
+        });
+      }
+
       await handleUncheck(memberId as string, todayStart);
     }
 
