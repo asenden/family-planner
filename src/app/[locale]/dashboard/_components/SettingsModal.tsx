@@ -1274,11 +1274,13 @@ function AddTaskForm({
   const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">("daily");
   const [customDays, setCustomDays] = useState<number[]>([]);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
+    setError(null);
     try {
       const slotTitles = { morning: "Morgens", daytime: "Tagsüber", evening: "Abends" };
       const routineTitle = slotTitles[timeSlot];
@@ -1302,7 +1304,7 @@ function AddTaskForm({
             assignedTo: memberId,
           }),
         });
-        if (!res.ok) return;
+        if (!res.ok) { setError(tRoutines("saveError")); return; }
         const data = await res.json();
         routine = data.routine;
         onRoutineCreated(data.routine);
@@ -1315,7 +1317,11 @@ function AddTaskForm({
       if (res.ok) {
         const data = await res.json();
         onAdded(data.task, routine!.id);
+      } else {
+        setError(tRoutines("saveError"));
       }
+    } catch {
+      setError(tRoutines("saveError"));
     } finally {
       setSaving(false);
     }
@@ -1420,6 +1426,9 @@ function AddTaskForm({
           </div>
         )}
       </div>
+      {error && (
+        <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>{error}</p>
+      )}
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
@@ -1467,6 +1476,7 @@ function EditTaskForm({
   const [schedule, setSchedule] = useState<"daily" | "weekdays" | "custom">(currentSchedule as "daily" | "weekdays" | "custom");
   const [customDays, setCustomDays] = useState<number[]>(currentCustomDays);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   const SLOT_TITLES: Record<string, string> = { morning: "Morgens", daytime: "Tagsüber", evening: "Abends" };
   const SLOT_ICONS: Record<string, string> = { morning: "🌅", daytime: "☀️", evening: "🌙" };
@@ -1475,6 +1485,7 @@ function EditTaskForm({
     e.preventDefault();
     if (!title.trim()) return;
     setSaving(true);
+    setError(null);
 
     try {
       // First, update the task fields (title, icon, points)
@@ -1483,7 +1494,7 @@ function EditTaskForm({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ title, icon, points }),
       });
-      if (!updateRes.ok) { setSaving(false); return; }
+      if (!updateRes.ok) { setError(tRoutines("saveError")); return; }
       const updatedTask = (await updateRes.json()).task;
 
       // Check if time slot or schedule changed — need to move task to a different routine
@@ -1537,6 +1548,8 @@ function EditTaskForm({
       }
 
       onUpdated(updatedTask, routineId, routineId);
+    } catch {
+      setError(tRoutines("saveError"));
     } finally {
       setSaving(false);
     }
@@ -1591,6 +1604,9 @@ function EditTaskForm({
         )}
       </div>
 
+      {error && (
+        <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>{error}</p>
+      )}
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
@@ -1620,11 +1636,13 @@ function AddRewardForm({
   const [cost, setCost] = useState(50);
   const [assignedTo, setAssignedTo] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || cost < 1) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch(`/api/families/${familyId}/rewards`, {
         method: "POST",
@@ -1634,7 +1652,11 @@ function AddRewardForm({
       if (res.ok) {
         const data = await res.json();
         onAdded(data.reward);
+      } else {
+        setError(tRoutines("saveError"));
       }
+    } catch {
+      setError(tRoutines("saveError"));
     } finally {
       setSaving(false);
     }
@@ -1690,6 +1712,9 @@ function AddRewardForm({
           </select>
         </div>
       )}
+      {error && (
+        <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>{error}</p>
+      )}
       <div className="flex gap-2">
         <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
           Cancel
@@ -1722,11 +1747,13 @@ function EditRewardForm({
   const [cost, setCost] = useState(reward.cost);
   const [assignedTo, setAssignedTo] = useState<string | null>(reward.assignedTo);
   const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   async function handleSave(e: React.FormEvent) {
     e.preventDefault();
     if (!title.trim() || cost < 1) return;
     setSaving(true);
+    setError(null);
     try {
       const res = await fetch(`/api/families/${familyId}/rewards/${reward.id}`, {
         method: "PUT",
@@ -1736,7 +1763,11 @@ function EditRewardForm({
       if (res.ok) {
         const data = await res.json();
         onUpdated(data.reward);
+      } else {
+        setError(tRoutines("saveError"));
       }
+    } catch {
+      setError(tRoutines("saveError"));
     } finally {
       setSaving(false);
     }
@@ -1780,6 +1811,9 @@ function EditRewardForm({
             </div>
           )}
 
+          {error && (
+            <p className="text-xs font-semibold" style={{ color: "#ef4444" }}>{error}</p>
+          )}
           <div className="flex gap-2 pt-2">
             <button type="button" onClick={onClose} className="flex-1 py-2 rounded-xl text-sm cursor-pointer" style={{ backgroundColor: "rgba(255,255,255,0.06)", color: "var(--color-text-muted)" }}>
               Cancel

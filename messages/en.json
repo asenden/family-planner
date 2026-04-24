@@ -238,6 +238,7 @@
     "allChildren": "All Children",
     "assignReward": "For",
     "confirmDelete": "Delete this?",
+    "saveError": "Save failed — please reload the page (Cmd+Shift+R)",
     "days": {
       "0": "Sun",
       "1": "Mon",

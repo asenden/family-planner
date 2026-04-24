@@ -238,6 +238,7 @@
     "allChildren": "Alle Kinder",
     "assignReward": "Für",
     "confirmDelete": "Löschen?",
+    "saveError": "Fehler beim Speichern — bitte Seite neu laden (Cmd+Shift+R)",
     "days": {
       "0": "So",
       "1": "Mo",

@@ -7,6 +7,8 @@ RUN npm ci
 
 FROM base AS builder
 WORKDIR /app
+ARG GIT_SHA=dev
+ENV GIT_SHA=$GIT_SHA
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 RUN npx prisma generate
