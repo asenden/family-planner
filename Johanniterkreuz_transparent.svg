@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 564 564"
+     width="159.17334mm" height="159.17334mm" role="img" aria-label="Johanniterkreuz">
+  <title>Johanniterkreuz (Malteserkreuz)</title>
+  <g fill="none" stroke="#000000" stroke-width="3.2" stroke-linejoin="miter" stroke-miterlimit="20">
+    <path d="M 434.00,282.00 L 543.02,160.29 L 296.14,267.86 L 403.71,20.98 L 282.00,130.00 L 160.29,20.98 L 267.86,267.86 L 20.98,160.29 L 130.00,282.00 L 20.98,403.71 L 267.86,296.14 L 160.29,543.02 L 282.00,434.00 L 403.71,543.02 L 296.14,296.14 L 543.02,403.71 Z"/>
+    <path d="M 423.26,282.00 L 512.58,182.27 L 280.68,283.32 L 381.73,51.42 L 282.00,140.74 L 182.27,51.42 L 283.32,283.32 L 51.42,182.27 L 140.74,282.00 L 51.42,381.73 L 283.32,280.68 L 182.27,512.58 L 282.00,423.26 L 381.73,512.58 L 280.68,280.68 L 512.58,381.73 Z"/>
+  </g>
+</svg>
